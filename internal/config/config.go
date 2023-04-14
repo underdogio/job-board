@@ -66,9 +66,9 @@ func LoadConfig() (Config, error) {
 	if port == "" {
 		return Config{}, fmt.Errorf("PORT cannot be empty")
 	}
-	databaseURL := os.Getenv("HEROKU_POSTGRESQL_PINK_URL")
+	databaseURL := os.Getenv("POSTGRESQL_HOST")
 	if databaseURL == "" {
-		return Config{}, fmt.Errorf("HEROKU_POSTGRESQL_PINK_URL cannot be empty")
+		return Config{}, fmt.Errorf("POSTGRESQL_HOST cannot be empty")
 	}
 	stripeKey := os.Getenv("STRIPE_KEY")
 	if stripeKey == "" {
