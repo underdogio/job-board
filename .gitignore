@@ -5,3 +5,8 @@
 !setup-database.sh
 !run-local-webserver.sh
 bin
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
