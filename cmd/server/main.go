@@ -100,16 +100,16 @@ func main() {
 	)
 
 	// developers pages
-	svr.RegisterRoute(
-		fmt.Sprintf("/%s-Developers", strings.Title(cfg.SiteJobCategory)),
-		handler.DevelopersHandler(svr, devRepo),
-		[]string{"GET"},
-	)
-	svr.RegisterRoute(
-		fmt.Sprintf("/%s-Developers-In-{location}", strings.Title(cfg.SiteJobCategory)),
-		handler.DevelopersHandler(svr, devRepo),
-		[]string{"GET"},
-	)
+	// svr.RegisterRoute(
+	// 	fmt.Sprintf("/%s-Developers", strings.Title(cfg.SiteJobCategory)),
+	// 	handler.DevelopersHandler(svr, devRepo),
+	// 	[]string{"GET"},
+	// )
+	// svr.RegisterRoute(
+	// 	fmt.Sprintf("/%s-Developers-In-{location}", strings.Title(cfg.SiteJobCategory)),
+	// 	handler.DevelopersHandler(svr, devRepo),
+	// 	[]string{"GET"},
+	// )
 	svr.RegisterRoute(
 		fmt.Sprintf("/%s-{tag}-Developers", strings.Title(cfg.SiteJobCategory)),
 		handler.DevelopersHandler(svr, devRepo),
@@ -390,18 +390,18 @@ func main() {
 		[]string{"GET"},
 	)
 
-	// Salary for location
-	svr.RegisterRoute(
-		fmt.Sprintf("/%s-Developer-Salary-{location}", strings.Title(cfg.SiteJobCategory)),
-		handler.SalaryLandingPageLocationPlaceholderHandler(svr, jobRepo, devRepo),
-		[]string{"GET"},
-	)
-	// Salary for remote
-	svr.RegisterRoute(
-		fmt.Sprintf("/Remote-%s-Developer-Salary", strings.Title(cfg.SiteJobCategory)),
-		handler.SalaryLandingPageLocationHandler(svr, jobRepo, devRepo, "Remote"),
-		[]string{"GET"},
-	)
+	// // Salary for location
+	// svr.RegisterRoute(
+	// 	fmt.Sprintf("/%s-Developer-Salary-{location}", strings.Title(cfg.SiteJobCategory)),
+	// 	handler.SalaryLandingPageLocationPlaceholderHandler(svr, jobRepo, devRepo),
+	// 	[]string{"GET"},
+	// )
+	// // Salary for remote
+	// svr.RegisterRoute(
+	// 	fmt.Sprintf("/Remote-%s-Developer-Salary", strings.Title(cfg.SiteJobCategory)),
+	// 	handler.SalaryLandingPageLocationHandler(svr, jobRepo, devRepo, "Remote"),
+	// 	[]string{"GET"},
+	// )
 
 	// hire developers pages
 	svr.RegisterRoute(
@@ -438,7 +438,7 @@ func main() {
 	// generic payment intent view
 	svr.RegisterRoute("/x/payment", handler.ShowPaymentPage(svr), []string{"GET"})
 	// generic payment intent processing
-	svr.RegisterRoute("/x/payment-intent", handler.GeneratePaymentIntent(svr, paymentRepo), []string{"POST"})
+	// svr.RegisterRoute("/x/payment-intent", handler.GeneratePaymentIntent(svr, paymentRepo), []string{"POST"})
 
 	// RSS feed
 	svr.RegisterRoute("/rss", handler.ServeRSSFeed(svr, jobRepo), []string{"GET"})

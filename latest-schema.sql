@@ -271,31 +271,21 @@ CREATE TABLE public.image (
 CREATE TABLE public.job (
     id integer NOT NULL,
     job_title character varying(128) NOT NULL,
+    job_category character varying(128) NOT NULL,
     company character varying(128) NOT NULL,
-    company_url character varying(128) NOT NULL,
-    company_twitter character varying(128),
-    company_email character varying(128),
-    salary_range character varying(100) NOT NULL,
     location character varying(200) NOT NULL,
+    salary_range character varying(100) NOT NULL,
+    job_type character varying(100) NOT NULL,
+    application_link character varying(100) NOT NULL,
     description text NOT NULL,
-    perks text,
-    interview_process text,
-    how_to_apply character varying(512),
     created_at timestamp without time zone NOT NULL,
     approved_at timestamp without time zone,
     url_id integer NOT NULL,
     slug character varying(256),
-    salary_min integer DEFAULT 1 NOT NULL,
-    salary_max integer DEFAULT 1 NOT NULL,
-    salary_currency character varying(4) DEFAULT '$'::bpchar NOT NULL,
-    ad_type integer DEFAULT 0 NOT NULL,
     company_icon_image_id character varying(255) DEFAULT NULL::character varying,
     external_id character varying(28) DEFAULT ''::character varying NOT NULL,
-    salary_period character varying(10) DEFAULT 'year'::character varying NOT NULL,
     expired boolean DEFAULT false,
-    last_week_clickouts integer DEFAULT 0 NOT NULL,
-    salary_currency_iso character(3) DEFAULT 'USD'::bpchar,
-    visa_sponsorship boolean DEFAULT false
+    last_week_clickouts integer DEFAULT 0 NOT NULL
 );
 
 
@@ -346,14 +336,12 @@ CREATE TABLE public.meta (
 
 CREATE TABLE public.purchase_event (
     stripe_session_id character varying(255) NOT NULL,
-    amount integer NOT NULL,
-    currency character(3) NOT NULL,
-    created_at timestamp without time zone NOT NULL,
-    completed_at timestamp without time zone,
+    email character varying(255) DEFAULT ''::character varying NOT NULL,
+    plan_id character varying(255) DEFAULT ''::character varying NOT NULL,
     description character varying(255) NOT NULL,
     job_id integer NOT NULL,
-    ad_type integer DEFAULT 0 NOT NULL,
-    email character varying(255) DEFAULT ''::character varying NOT NULL
+    created_at timestamp without time zone NOT NULL,
+    completed_at timestamp without time zone
 );
 
 
@@ -806,8 +794,6 @@ ALTER TABLE ONLY public.job ADD COLUMN blog_eligibility_expired_at TIMESTAMP DEF
 ALTER TABLE ONLY public.job ADD COLUMN front_page_eligibility_expired_at TIMESTAMP DEFAULT '1970-01-01 00:00:00';
 ALTER TABLE ONLY public.job ADD COLUMN company_page_eligibility_expired_at TIMESTAMP DEFAULT '1970-01-01 00:00:00';
 ALTER TABLE ONLY public.job ADD COLUMN plan_expired_at TIMESTAMP DEFAULT '1970-01-01 00:00:00';
-ALTER TABLE ONLY public.purchase_event ADD COLUMN plan_type VARCHAR(255) NOT NULL DEFAULT 'legacy';
-ALTER TABLE ONLY public.purchase_event ADD COLUMN plan_duration INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE ONLY public.company ADD COLUMN company_page_eligibility_expired_at TIMESTAMP DEFAULT '1970-01-01 00:00:00';
 ALTER TABLE ONLY public.user_sign_on_token ADD COLUMN user_type VARCHAR(20) DEFAULT 'developer';
 ALTER TABLE ONLY public.developer_profile ADD COLUMN role_level VARCHAR(20) NOT NULL DEFAULT 'mid-level';

@@ -1,157 +1,1030 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		{{ $isRemote := eq .LocationFilter "Remote" }}
-		{{ if and .LocationFilter $isRemote }}
-		<meta name="yandex-verification" content="96b3163b8551fd06" />
-		<title>Remote Companies using {{ .SiteJobCategory }} in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}</title>
-		<link href="/x/s/m/{{ .SiteLogoImageID }}?w=50&h=50" rel="shortcut icon">
-		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<meta name="title" content="Remote Companies using {{ .SiteJobCategory }} in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}" />
-		<meta name="keywords" content="{{ .SiteJobCategory }}, {{ .SiteJobCategory }} {{ .LocationFilter }} companies, companies using {{ .SiteJobCategory }}, {{ .SiteJobCategory }} companies, remote companies" />
-		<meta name="description" content="Remote Companies Using {{ .SiteJobCategory }} in production and hiring {{ .SiteJobCategory }} engineers in {{ .MonthAndYear }}{{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}" />
-		<meta itemprop="name" content="Remote Companies using {{ .SiteJobCategory }} in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}" />
-		<meta itemprop="description" content="Remote Companies Using {{ .SiteJobCategory }} in production and hiring Go engineers in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}">
-		<meta itemprop="image" content="https://{{ .SiteHost }}/x/s/m/{{ .SiteLogoImageID }}">
-		<meta property="og:url" content="https://{{ .SiteHost }}">
-		<meta property="og:type" content="website">
-		<meta name="og:title" content="Remote Companies Using {{ .SiteJobCategory }} in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}" />
-		<meta property="og:description" content="Remote Companies Using {{ .SiteJobCategory }} in production and hiring {{ .SiteJobCategory }} engineers in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}">
-		<meta property="og:image" content="https://{{ .SiteHost }}/x/s/m/{{ .SiteLogoImageID }}">
-		<meta name="twitter:card" content="summary_large_image">
-		<meta name="twitter:title" content="Remote Companies Using {{ .SiteJobCategory }} in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}" />
-		<meta name="twitter:description" content="Remote Companies Using {{ .SiteJobCategory }} in production and hiring {{ .SiteJobCategory }} engineers in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}">
-		<link rel="canonical" href="https://{{ .SiteHost }}/Remote-Companies-Using-{{ .SiteJobCategoryURLEncoded }}" />
-		{{ else }}
-		<meta name="yandex-verification" content="96b3163b8551fd06" />
-		<title>Companies using {{ .SiteJobCategory }}{{ if .LocationFilter }} in {{ .LocationFilter }}{{ if .Country }}, {{ .Country }}{{ end }}{{ end }} in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}</title>
-		<link href="/x/s/m/{{ .SiteLogoImageID }}?w=50&h=50" rel="shortcut icon">
-		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<meta name="title" content="Companies using {{ .SiteJobCategory }}{{ if .LocationFilter }} in {{ .LocationFilter }}{{ if .Country }}, {{ .Country }}{{ end }}{{ end }} in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}" />
-		<meta name="keywords" content="{{ .SiteJobCategory }}{{ if .LocationFilter }}, {{ .SiteJobCategory }} companies in {{ .LocationFilter}} {{ end }}, companies using go, companies using {{ .SiteJobCategory }}, {{ .SiteJobCategory }} companies" />
-		<meta name="description" content="{{ .SiteJobCategory }} Companies using {{ .SiteJobCategory }} in production and hiring Go engineers{{ if .LocationFilter }} in {{ .LocationFilter }}{{ if .Region }}, {{ .Region }}{{ end }}{{ if .Country }}, {{ .Country }}{{ end }}{{ end }} in {{ .MonthAndYear }}" />
-		<meta itemprop="name" content="Companies using {{ .SiteJobCategory }}{{ if .LocationFilter }} in {{ .LocationFilter }}{{ end }} in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}" />
-		<meta itemprop="description" content="Companies Using {{ .SiteJobCategory }} in production and hiring Go engineers{{ if .LocationFilter }} in {{.LocationFilter}}{{ if .Region }}, {{ .Region }}{{ if .Country }}, {{ .Country }}{{ end }}{{ end }}{{ end }} in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}">
-		<meta itemprop="image" content="https://{{ .SiteHost }}/x/s/m/{{ .SiteLogoImageID }}">
-		<meta property="og:url" content="https://{{ .SiteHost }}">
-		<meta property="og:type" content="website">
-		<meta name="og:title" content="Companies using {{ .SiteJobCategory }}{{ if .LocationFilter }} in {{ .LocationFilter }}{{ if .Country }}, {{ .Country }}{{ end }}{{ end }} in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}" />
-		<meta property="og:description" content="Companies Using {{ .SiteJobCategory }} in production and hiring Go engineers{{ if .LocationFilter }} in {{.LocationFilter}}{{ if .Region }}, {{ .Region }}{{ if .Country }}, {{ .Country }}{{ end }}{{ end }}{{ end }} in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}">
-		<meta property="og:image" content="https://{{ .SiteHost }}/x/s/m/{{ .SiteLogoImageID }}">
-		<meta name="twitter:card" content="summary_large_image">
-		<meta name="twitter:title" content="Companies using {{ .SiteJobCategory }}{{ if .LocationFilter }} in {{ .LocationFilter }}{{ if .Country }}, {{ .Country }}{{ end }}{{ end }} in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}" />
-		<meta name="twitter:description" content="Companies Using {{ .SiteJobCategory }} in production and hiring Go engineers{{ if .LocationFilter }}{{.LocationFilter}} {{ end }}Jobs in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}">
-		<link rel="canonical" href="https://{{ .SiteHost }}/Companies-Using-{{ .SiteJobCategoryURLEncoded }}{{ if .LocationFilter }}-In-{{.LocationFilter}}{{ end }}" />
-		{{ end }}
-		<meta name="twitter:image" content="https://{{ .SiteHost }}/x/s/m/{{ .SiteLogoImageID }}">
-		<meta name="twitter:site" content="@{{ .SiteTwitter }}"/>
-		<meta name="google-site-verification" content="CsoJdYDgMeIeUO0ylZtiDUb4-VZvb2tCpLTkq3GglVo" />
-		<meta name="msvalidate.01" content="E75D7CB7D078DD8E9C2FBA8C285CD656" />
-		<style type="text/css">
-body{background:#ffffff;}
-input,textarea,select,button,option,html,body{font-family:Helvetica;font-size:18px;font-stretch:normal;font-style:normal;font-weight:400;line-height:29.7px}input,textarea,select,button,option,html,body{font-family:Helvetica;font-size:18px;font-stretch:normal;font-style:normal;font-weight:400;line-height:29.7px}th{font-weight:600}td,th{border-bottom:1.08px solid #595959;overflow:auto;padding:14.85px 18px;text-align:left;vertical-align:top}thead th{border-bottom-width:2.16px;padding-bottom:6.3px}table{display:table;overflow-x:auto}input,textarea,select,button,option,html,body{font-family:Helvetica;font-size:18px;font-stretch:normal;font-style:normal;font-weight:400;line-height:29.7px}fieldset{display:flex;flex-direction:row;flex-wrap:wrap}fieldset legend{margin:18px 0}input,textarea,select,button{border-radius:3.6px;display:inline-block;padding:9.9px}input+label,input+input[type="checkbox"],input+input[type="radio"],textarea+label,textarea+input[type="checkbox"],textarea+input[type="radio"],select+label,select+input[type="checkbox"],select+input[type="radio"],button+label,button+input[type="checkbox"],button+input[type="radio"]{page-break-before:always}input,select,label{margin-right:3.6px}textarea{min-height:90px;min-width:360px}label{display:inline-block;margin-bottom:12.6px}label+*{page-break-before:always}label>input{margin-bottom:0}input[type="submit"],input[type="reset"],button{background:#f2f2f2;color:#191919;cursor:pointer;display:inline;margin-bottom:18px;margin-right:7.2px;padding:6.525px 23.4px;text-align:center}input[type="submit"]:hover,input[type="reset"]:hover,button:hover{background:#d9d9d9;color:#000}input[type="submit"][disabled],input[type="reset"][disabled],button[disabled]{background:#e6e5e5;color:#403f3f;cursor:not-allowed}input[type="submit"],button[type="submit"]{background:{{ .PrimaryColor }};color:#fff}input[type="submit"]:hover,button[type="submit"]:hover{background:{{ .SecondaryColor }};color:#ffffff}input,select,textarea{margin-bottom:18px}input[type="text"],input[type="password"],input[type="email"],input[type="url"],input[type="phone"],input[type="tel"],input[type="number"],input[type="datetime"],input[type="date"],input[type="month"],input[type="week"],input[type="color"],input[type="time"],input[type="search"],input[type="range"],input[type="file"],input[type="datetime-local"],select,textarea{border:1px solid #595959;padding:5.4px 6.3px}input[type="checkbox"],input[type="radio"]{flex-grow:0;height:29.7px;margin-left:0;margin-right:9px;vertical-align:middle}input[type="checkbox"]+label,input[type="radio"]+label{page-break-before:avoid}select[multiple]{min-width:270px}input,textarea,select,button,option,html,body{font-family:Helvetica;font-size:18px;font-stretch:normal;font-style:normal;font-weight:400;line-height:29.7px}pre,code,kbd,samp,var,output{font-family:Menlo,Monaco,Consolas,"Courier New",monospace;font-size:14.4px}pre{border-left:1.8px solid #59c072;line-height:25.2px;overflow:auto;padding-left:18px}pre code{background:none;border:0;line-height:29.7px;padding:0}code,kbd{background:#daf1e0;border-radius:3.6px;color:#2a6f3b;display:inline-block;line-height:18px;padding:3.6px 6.3px 2.7px}kbd{background:#2a6f3b;color:#fff}mark{background:#ffc;padding:0 3.6px}input,textarea,select,button,option,html,body{font-family:Helvetica;font-size:18px;font-stretch:normal;font-style:normal;font-weight:400;line-height:29.7px}h1,h2,h3,h4,h5,h6{color:#000;margin-bottom:18px}h1{font-size:36px;font-weight:500;line-height:41.4px;margin-top:72px}h2{font-size:25.2px;font-weight:400;line-height:30.6px;margin-top:54px}h3{font-size:21.6px;line-height:27px;margin-top:36px}h4{font-size:18px;line-height:23.4px;margin-top:18px}h5{font-size:14.4px;font-weight:bold;line-height:21.6px;text-transform:uppercase}h6{color:#595959;font-size:14.4px;font-weight:bold;line-height:18px;text-transform:uppercase}input,textarea,select,button,option,html,body{font-family:Helvetica;font-size:18px;font-stretch:normal;font-style:normal;font-weight:400;line-height:29.7px}a{color:{{ .PrimaryColor }};text-decoration:none}a:hover{text-decoration:underline}hr{border-bottom:1px solid #595959}figcaption,small{font-size:15.3px}figcaption{color:#595959}var,em,i{font-style:italic}dt,strong,b{font-weight:600}del,s{text-decoration:line-through}ins,u{text-decoration:underline}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sup{top:-.5em}sub{bottom:-.25em}*{border:0;border-collapse:separate;border-spacing:0;box-sizing:border-box;margin:0;max-width:100%;outline:0;padding:0;vertical-align:baseline}html,body{width:100%}html{height:100%}body{color:#1a1919;}p,ul,ol,dl,blockquote,hr,pre,table,form,fieldset,figure,address{margin-bottom:29.7px}section{margin-left:auto;margin-right:auto;width:780px}article,header,footer{padding:43.2px}article{word-wrap: break-word;background:#fff;border:1px solid #d9d9d9;border-radius:7.2px}nav{text-align:center}nav ul{list-style:none;margin-left:0;text-align:center}nav ul li{display:inline-block;margin-left:9px;margin-right:9px;vertical-align:middle}nav ul li:last-child{margin-right:0}ol,ul{margin-left:31.5px}li dl,li ol,li ul{margin-bottom:0}dl{display:inline-block}dt{padding:0 18px}dd{padding:0 18px 4.5px}dd:last-of-type{border-bottom:1.08px solid #595959}dd+dt{border-top:1.08px solid #595959;padding-top:9px}blockquote{border-left:2.16px solid #595959;padding:4.5px 18px 4.5px 15.84px}blockquote footer{color:#595959;font-size:13.5px;margin:0}blockquote p{margin-bottom:0}img{height:auto;margin:0 auto}figure img{display:block}/*# sourceMappingURL=tacit-css-1.3.2.min.css.map */
-footer{padding:10px;width:780px;margin:auto;}.subnav{width: 100%;text-align: left;float: left;font-size: 12pt;}.subnav ul {text-align:left;}.subnav ul li {width:90%;} @media only screen and (max-witdh: 768px) {.subnav ul li {width: 100%;}}
-#search-location{margin-bottom: 1px;border: 1px solid #d9d9d9;width:100%;}#search-location-container,#search-tag-container{position:relative;width:65%;display:inline-block;}.search-suggestions{z-index:1;width:100%;border:1px solid #d9d9d9;position:absolute;background:#fff;border-radius:3.6px;}.search-option{padding:5px 10px;}.search-option:hover{background:#d9d9d9;cursor:pointer;}@media only screen and (max-width:768px) {#search-salary-btn{width:100%;margin-right:0;margin-bottom:20px;float:initial;}#search-location-container,#search-tag-container{width:100%;}}
-#search-btn{width:30%;margin-right:0;float:right;padding:5.53px 10px;border:1px solid {{ .PrimaryColor }};}#post-btn{width:auto;float:right;margin-right:0;padding-right:25px;padding-left: 25px;}@media only screen and (max-width:768px){.subnav{width: 100%;}#search-location{width:100%;border:1px solid #d9d9d9}#search-btn{width:100%;margin-right:0;margin-bottom:20px;float:initial;}#post-btn{width: auto;}}
-.line-item {background:#fff;padding:20px;margin:10px auto;}input{-webkit-appearance: none;-moz-appearance: none;appearance: none;}
-.job-desc {float:left;padding:0px 0px 0px 0px;font-size:12pt;display:none;}.job-desc>h3{margin-top:10px;}.job-icon{float: left; width: 60px; border-radius: 60px; margin-right: 10px;border: 1px solid #ccc;}
-a:hover{cursor:pointer;}.main-title{font-weight: bold;margin: 0 0 auto;width:80%;color:{{ .PrimaryColor }};}
-.line-item-sponsored-1 {border-radius: 8px;}@media only screen and (max-width: 768px) {.email-subscribe-item{margin-top:15px;margin-bottom: 0;}}
-.apply-box {display: none;z-index: 2;width: 50%; height: auto;position: fixed;margin: 5% auto; top: 40px; left: 0; right: 0;background: #fff;}@media only screen and (max-width: 768px) {.apply-box{width: 90%;}}
-.overlay-effect {display: none;width: 100%; height: 100%; position: fixed; top: 0; left: 0;background: rgba(0, 0, 0,0.5);z-index: 1}.upload-file-label:hover{cursor: pointer;}
-.clearfix::after {content: "";clear: both;display: table;}input[type="checkbox"]{-webkit-appearance: checkbox;-moz-appearance: checkbox;appearance: checkbox;}
-.apply-link {font-size: 18px;font-weight: 400;line-height: 29.7px;border-radius: 3.6px;background: {{ .PrimaryColor }};color: #fff;cursor: pointer;display: inline;margin-bottom: 18px;margin-right: 7.2px;padding: 6.525px 23.4px;text-align: center;}.apply-link:hover {text-decoration:none;background:{{ .SecondaryColor }};color:#ffffff;}
-.menu-header{text-align:left;width: 100%;margin:20px auto;border-bottom:1px solid #d9d9d9;}.menu-header a {white-space:pre;color: black;font-size: 12pt;font-weight: bold;padding-right: 5px;}header{padding:0 10px;width:780px;margin:auto;}.hover-pointer{cursor:pointer;}
-		</style>
-		{{ template "feedback-box-css" . }}
-		{{ template "newsletter-banner-css" . }}
-		{{ template "google-analytics" }}
-	</head>
-	<body>
-		{{ template "feedback-box-html" . }}
-		{{ template "newsletter-banner-html" . }}
-		<header>
-			<nav class="menu-header">
-				<img src="/x/s/m/{{ .SiteLogoImageID }}?w=50&h=50" class="hover-pointer" onclick="javascript:window.location.href='/'" style="width: 30px; margin-right: 10px; border-radius: 50px; margin-top: 0px; border: 1px solid #000; float: left;">
-				<small style="display:block;float:left;margin-bottom:10px;">
-						<a href="/">Jobs</a>&bull;
-						<a href="/{{ .SiteJobCategoryURLEncoded }}-Developer-Salary-Remote">Salaries</a>&bull;
-						<a style="text-decoration: underline;" href="/Companies-Using-{{ .SiteJobCategoryURLEncoded }}">Companies</a>&bull;
-						<a href="/{{ .SiteJobCategoryURLEncoded }}-Developers">Developers</a>
-						<br>
-					</small>
-				</div>
-				<div style="float: right;">
-					{{ if .LoggedUser }}<a href="/profile/home">Your Profile</a>{{ else }}<a href="/auth">Login</a>{{ end }}
-				</div>
-				<div style="clear: both;"></div>
-			</nav>
-		</header>
-		<section style="padding: 0 10px;">
-			<input type="submit" value="Post a Job" id="post-btn"
-			onclick="window.location.href='/Hire-{{ .SiteJobCategoryURLEncoded }}-Developers';">
-			<p>
-			{{ if and .LocationFilter $isRemote }}
-			<h1 class="main-title">Remote Companies Using {{ .SiteJobCategory }}</h1><br/>
-			{{ else }}
-			<h1 class="main-title">Companies Using {{ .SiteJobCategory }}{{ if .LocationFilter }} in {{ .LocationFilter }}{{ if .Country }}, {{ .Country }}{{ end }}{{ end }}</h1><br/>
-			{{ end }}
-			<h2 style="font-size:12pt;font-weight:100;margin-top:20px">Explore <b>{{ .TextJobCount }} companies</b> hiring {{ .SiteJobCategory }} developers {{ if .LocationFilter }} in <b>{{ .LocationFilter }}{{ if .Region }}, {{ .Region }}{{ end }}{{ if .Country }}, {{ .Country }}{{ end }}</b>{{ end }} in {{ .MonthAndYear }} like <b>{{ .TextCompanies }}</b> hiring <b>{{ .TextJobTitles }}</b>. Last post <time datetime="{{ .LastJobPostedAt }}">{{ .LastJobPostedAtHumanized }}</time></h2>
-			</p>
-			<div class="overlay-effect" id="overlay-0" onclick="closeApplyPopup();"></div>
-      <article class="apply-box" id="apply-box-0">
-          <h3 id="apply-box-title" style="margin-top: 10px;">Create your free profile to continue</h3>
-        <div id="apply-box-container">
-        <p id="profile-info"></p>
-        <div style="margin-bottom: 20px; text-align: center;">
-          {{ range $i, $j := .TopDevelopers }}
-          <img width="50" height="50" style="margin-left:-20px;border-radius: 50px; border: 1px solid #aaa;"
-            src="/x/s/m/{{ .ImageID }}?w=50&h=50" title="{{ .Name }}" alt="{{ .Name }}" />
-          {{ end }}
-        </div>
-        <ul>
-          {{ if .DeveloperMessagesSentLastMonth }}
-          <li><b>{{ .DeveloperMessagesSentLastMonth }}</b> direct messages sent by companies to developers on {{ .SiteName }} in the last 30 days</li>
-          {{ end }}
-          {{ if .DevelopersRegisteredLastMonth }}
-          <li><b>{{ .DevelopersRegisteredLastMonth }}</b> developers joined {{ .SiteName }} in the last 30 days
-          </li>
-          {{ end }}
-          {{ if .DeveloperProfilePageViewsLastMonth }}
-          <li><b>{{ humannumber .DeveloperProfilePageViewsLastMonth }}</b> developer profiles page views in the
-            last 30 days</li>
-          {{ end }}
-          <li>Get access to our <a href="/{{ .SiteJobCategoryURLEncoded }}-Developer-Salary-Remote" target="_blank">Salary Explorer</a></li>
-          <li>Last developer joined <b><time datetime="{{ .LastDevCreatedAt }}">{{ .LastDevCreatedAtHumanized }}</time></b></li>
-        </ul>
-              <br />
-              <input type="submit" id="apply-submit" value="Create Free Profile" onclick="window.location.href='/Join-{{ .SiteJobCategory }}-Community';" style="float: right;">
-        </div>
-          </article>
-			<div style="margin-bottom:10px;">
-				<div id="search-location-container">
-					<input autocomplete="off" type="text" value="{{ .LocationFilter }}" placeholder="City, Country" id="search-location"/>
-					<div id="search-location-suggestions" style="display:none;" class="search-suggestions">
-						<div class="search-option">Rome</div>
-					</div>
-				</div>
-				<input type="submit" {{ if .LoggedUser }}onclick="search();"{{ else }}onclick="showPopup();"{{ end }} value="Find Companies" id="search-btn"/>
+
+<head>
+	{{ $isRemote := eq .LocationFilter "Remote" }}
+	{{ if and .LocationFilter $isRemote }}
+	<meta name="yandex-verification" content="96b3163b8551fd06" />
+	<title>Remote Companies using {{ .SiteJobCategory }} in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}</title>
+	<link href="/x/s/m/{{ .SiteLogoImageID }}?w=50&h=50" rel="shortcut icon">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="title"
+		content="Remote Companies using {{ .SiteJobCategory }} in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}" />
+	<meta name="keywords"
+		content="{{ .SiteJobCategory }}, {{ .SiteJobCategory }} {{ .LocationFilter }} companies, companies using {{ .SiteJobCategory }}, {{ .SiteJobCategory }} companies, remote companies" />
+	<meta name="description"
+		content="Remote Companies Using {{ .SiteJobCategory }} in production and hiring {{ .SiteJobCategory }} engineers in {{ .MonthAndYear }}{{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}" />
+	<meta itemprop="name"
+		content="Remote Companies using {{ .SiteJobCategory }} in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}" />
+	<meta itemprop="description"
+		content="Remote Companies Using {{ .SiteJobCategory }} in production and hiring Go engineers in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}">
+	<meta itemprop="image" content="https://{{ .SiteHost }}/x/s/m/{{ .SiteLogoImageID }}">
+	<meta property="og:url" content="https://{{ .SiteHost }}">
+	<meta property="og:type" content="website">
+	<meta name="og:title"
+		content="Remote Companies Using {{ .SiteJobCategory }} in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}" />
+	<meta property="og:description"
+		content="Remote Companies Using {{ .SiteJobCategory }} in production and hiring {{ .SiteJobCategory }} engineers in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}">
+	<meta property="og:image" content="https://{{ .SiteHost }}/x/s/m/{{ .SiteLogoImageID }}">
+	<meta name="twitter:card" content="summary_large_image">
+	<meta name="twitter:title"
+		content="Remote Companies Using {{ .SiteJobCategory }} in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}" />
+	<meta name="twitter:description"
+		content="Remote Companies Using {{ .SiteJobCategory }} in production and hiring {{ .SiteJobCategory }} engineers in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}">
+	<link rel="canonical" href="https://{{ .SiteHost }}/Remote-Companies-Using-{{ .SiteJobCategoryURLEncoded }}" />
+	{{ else }}
+	<meta name="yandex-verification" content="96b3163b8551fd06" />
+	<title>Companies using {{ .SiteJobCategory }}{{ if .LocationFilter }} in {{ .LocationFilter }}{{ if .Country }}, {{ .Country }}{{ end }}{{ end }} in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}</title>
+	<link href="/x/s/m/{{ .SiteLogoImageID }}?w=50&h=50" rel="shortcut icon">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="title"
+		content="Companies using {{ .SiteJobCategory }}{{ if .LocationFilter }} in {{ .LocationFilter }}{{ if .Country }}, {{ .Country }}{{ end }}{{ end }} in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}" />
+	<meta name="keywords"
+		content="{{ .SiteJobCategory }}{{ if .LocationFilter }}, {{ .SiteJobCategory }} companies in {{ .LocationFilter}} {{ end }}, companies using go, companies using {{ .SiteJobCategory }}, {{ .SiteJobCategory }} companies" />
+	<meta name="description"
+		content="{{ .SiteJobCategory }} Companies using {{ .SiteJobCategory }} in production and hiring Go engineers{{ if .LocationFilter }} in {{ .LocationFilter }}{{ if .Region }}, {{ .Region }}{{ end }}{{ if .Country }}, {{ .Country }}{{ end }}{{ end }} in {{ .MonthAndYear }}" />
+	<meta itemprop="name"
+		content="Companies using {{ .SiteJobCategory }}{{ if .LocationFilter }} in {{ .LocationFilter }}{{ end }} in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}" />
+	<meta itemprop="description"
+		content="Companies Using {{ .SiteJobCategory }} in production and hiring Go engineers{{ if .LocationFilter }} in {{.LocationFilter}}{{ if .Region }}, {{ .Region }}{{ if .Country }}, {{ .Country }}{{ end }}{{ end }}{{ end }} in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}">
+	<meta itemprop="image" content="https://{{ .SiteHost }}/x/s/m/{{ .SiteLogoImageID }}">
+	<meta property="og:url" content="https://{{ .SiteHost }}">
+	<meta property="og:type" content="website">
+	<meta name="og:title"
+		content="Companies using {{ .SiteJobCategory }}{{ if .LocationFilter }} in {{ .LocationFilter }}{{ if .Country }}, {{ .Country }}{{ end }}{{ end }} in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}" />
+	<meta property="og:description"
+		content="Companies Using {{ .SiteJobCategory }} in production and hiring Go engineers{{ if .LocationFilter }} in {{.LocationFilter}}{{ if .Region }}, {{ .Region }}{{ if .Country }}, {{ .Country }}{{ end }}{{ end }}{{ end }} in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}">
+	<meta property="og:image" content="https://{{ .SiteHost }}/x/s/m/{{ .SiteLogoImageID }}">
+	<meta name="twitter:card" content="summary_large_image">
+	<meta name="twitter:title"
+		content="Companies using {{ .SiteJobCategory }}{{ if .LocationFilter }} in {{ .LocationFilter }}{{ if .Country }}, {{ .Country }}{{ end }}{{ end }} in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}" />
+	<meta name="twitter:description"
+		content="Companies Using {{ .SiteJobCategory }} in production and hiring Go engineers{{ if .LocationFilter }}{{.LocationFilter}} {{ end }}Jobs in {{ .MonthAndYear }} {{ if .ShowPage }} - Page {{ .CurrentPage }} {{ end }} | {{ .SiteName }}">
+	<link rel="canonical"
+		href="https://{{ .SiteHost }}/Companies-Using-{{ .SiteJobCategoryURLEncoded }}{{ if .LocationFilter }}-In-{{.LocationFilter}}{{ end }}" />
+	{{ end }}
+	<meta name="twitter:image" content="https://{{ .SiteHost }}/x/s/m/{{ .SiteLogoImageID }}">
+	<meta name="twitter:site" content="@{{ .SiteTwitter }}" />
+	<meta name="google-site-verification" content="CsoJdYDgMeIeUO0ylZtiDUb4-VZvb2tCpLTkq3GglVo" />
+	<meta name="msvalidate.01" content="E75D7CB7D078DD8E9C2FBA8C285CD656" />
+	<style type="text/css">
+		body {
+			background: #ffffff;
+		}
+
+		input,
+		textarea,
+		select,
+		button,
+		option,
+		html,
+		body {
+			font-family: Helvetica;
+			font-size: 18px;
+			font-stretch: normal;
+			font-style: normal;
+			font-weight: 400;
+			line-height: 29.7px
+		}
+
+		input,
+		textarea,
+		select,
+		button,
+		option,
+		html,
+		body {
+			font-family: Helvetica;
+			font-size: 18px;
+			font-stretch: normal;
+			font-style: normal;
+			font-weight: 400;
+			line-height: 29.7px
+		}
+
+		th {
+			font-weight: 600
+		}
+
+		td,
+		th {
+			border-bottom: 1.08px solid #595959;
+			overflow: auto;
+			padding: 14.85px 18px;
+			text-align: left;
+			vertical-align: top
+		}
+
+		thead th {
+			border-bottom-width: 2.16px;
+			padding-bottom: 6.3px
+		}
+
+		table {
+			display: table;
+			overflow-x: auto
+		}
+
+		input,
+		textarea,
+		select,
+		button,
+		option,
+		html,
+		body {
+			font-family: Helvetica;
+			font-size: 18px;
+			font-stretch: normal;
+			font-style: normal;
+			font-weight: 400;
+			line-height: 29.7px
+		}
+
+		fieldset {
+			display: flex;
+			flex-direction: row;
+			flex-wrap: wrap
+		}
+
+		fieldset legend {
+			margin: 18px 0
+		}
+
+		input,
+		textarea,
+		select,
+		button {
+			border-radius: 3.6px;
+			display: inline-block;
+			padding: 9.9px
+		}
+
+		input+label,
+		input+input[type="checkbox"],
+		input+input[type="radio"],
+		textarea+label,
+		textarea+input[type="checkbox"],
+		textarea+input[type="radio"],
+		select+label,
+		select+input[type="checkbox"],
+		select+input[type="radio"],
+		button+label,
+		button+input[type="checkbox"],
+		button+input[type="radio"] {
+			page-break-before: always
+		}
+
+		input,
+		select,
+		label {
+			margin-right: 3.6px
+		}
+
+		textarea {
+			min-height: 90px;
+			min-width: 360px
+		}
+
+		label {
+			display: inline-block;
+			margin-bottom: 12.6px
+		}
+
+		label+* {
+			page-break-before: always
+		}
+
+		label>input {
+			margin-bottom: 0
+		}
+
+		input[type="submit"],
+		input[type="reset"],
+		button {
+			background: #f2f2f2;
+			color: #191919;
+			cursor: pointer;
+			display: inline;
+			margin-bottom: 18px;
+			margin-right: 7.2px;
+			padding: 6.525px 23.4px;
+			text-align: center
+		}
+
+		input[type="submit"]:hover,
+		input[type="reset"]:hover,
+		button:hover {
+			background: #d9d9d9;
+			color: #000
+		}
+
+		input[type="submit"][disabled],
+		input[type="reset"][disabled],
+		button[disabled] {
+			background: #e6e5e5;
+			color: #403f3f;
+			cursor: not-allowed
+		}
+
+		input[type="submit"],
+		button[type="submit"] {
+			background: {
+					{
+					.PrimaryColor
+				}
+			}
+
+			;
+			color:#fff
+		}
+
+		input[type="submit"]:hover,
+		button[type="submit"]:hover {
+			background: {
+					{
+					.SecondaryColor
+				}
+			}
+
+			;
+			color:#ffffff
+		}
+
+		input,
+		select,
+		textarea {
+			margin-bottom: 18px
+		}
+
+		input[type="text"],
+		input[type="password"],
+		input[type="email"],
+		input[type="url"],
+		input[type="phone"],
+		input[type="tel"],
+		input[type="number"],
+		input[type="datetime"],
+		input[type="date"],
+		input[type="month"],
+		input[type="week"],
+		input[type="color"],
+		input[type="time"],
+		input[type="search"],
+		input[type="range"],
+		input[type="file"],
+		input[type="datetime-local"],
+		select,
+		textarea {
+			border: 1px solid #595959;
+			padding: 5.4px 6.3px
+		}
+
+		input[type="checkbox"],
+		input[type="radio"] {
+			flex-grow: 0;
+			height: 29.7px;
+			margin-left: 0;
+			margin-right: 9px;
+			vertical-align: middle
+		}
+
+		input[type="checkbox"]+label,
+		input[type="radio"]+label {
+			page-break-before: avoid
+		}
+
+		select[multiple] {
+			min-width: 270px
+		}
+
+		input,
+		textarea,
+		select,
+		button,
+		option,
+		html,
+		body {
+			font-family: Helvetica;
+			font-size: 18px;
+			font-stretch: normal;
+			font-style: normal;
+			font-weight: 400;
+			line-height: 29.7px
+		}
+
+		pre,
+		code,
+		kbd,
+		samp,
+		var,
+		output {
+			font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+			font-size: 14.4px
+		}
+
+		pre {
+			border-left: 1.8px solid #59c072;
+			line-height: 25.2px;
+			overflow: auto;
+			padding-left: 18px
+		}
+
+		pre code {
+			background: none;
+			border: 0;
+			line-height: 29.7px;
+			padding: 0
+		}
+
+		code,
+		kbd {
+			background: #daf1e0;
+			border-radius: 3.6px;
+			color: #2a6f3b;
+			display: inline-block;
+			line-height: 18px;
+			padding: 3.6px 6.3px 2.7px
+		}
+
+		kbd {
+			background: #2a6f3b;
+			color: #fff
+		}
+
+		mark {
+			background: #ffc;
+			padding: 0 3.6px
+		}
+
+		input,
+		textarea,
+		select,
+		button,
+		option,
+		html,
+		body {
+			font-family: Helvetica;
+			font-size: 18px;
+			font-stretch: normal;
+			font-style: normal;
+			font-weight: 400;
+			line-height: 29.7px
+		}
+
+		h1,
+		h2,
+		h3,
+		h4,
+		h5,
+		h6 {
+			color: #000;
+			margin-bottom: 18px
+		}
+
+		h1 {
+			font-size: 36px;
+			font-weight: 500;
+			line-height: 41.4px;
+			margin-top: 72px
+		}
+
+		h2 {
+			font-size: 25.2px;
+			font-weight: 400;
+			line-height: 30.6px;
+			margin-top: 54px
+		}
+
+		h3 {
+			font-size: 21.6px;
+			line-height: 27px;
+			margin-top: 36px
+		}
+
+		h4 {
+			font-size: 18px;
+			line-height: 23.4px;
+			margin-top: 18px
+		}
+
+		h5 {
+			font-size: 14.4px;
+			font-weight: bold;
+			line-height: 21.6px;
+			text-transform: uppercase
+		}
+
+		h6 {
+			color: #595959;
+			font-size: 14.4px;
+			font-weight: bold;
+			line-height: 18px;
+			text-transform: uppercase
+		}
+
+		input,
+		textarea,
+		select,
+		button,
+		option,
+		html,
+		body {
+			font-family: Helvetica;
+			font-size: 18px;
+			font-stretch: normal;
+			font-style: normal;
+			font-weight: 400;
+			line-height: 29.7px
+		}
+
+		a {
+			color: {
+					{
+					.PrimaryColor
+				}
+			}
+
+			;
+			text-decoration:none
+		}
+
+		a:hover {
+			text-decoration: underline
+		}
+
+		hr {
+			border-bottom: 1px solid #595959
+		}
+
+		figcaption,
+		small {
+			font-size: 15.3px
+		}
+
+		figcaption {
+			color: #595959
+		}
+
+		var,
+		em,
+		i {
+			font-style: italic
+		}
+
+		dt,
+		strong,
+		b {
+			font-weight: 600
+		}
+
+		del,
+		s {
+			text-decoration: line-through
+		}
+
+		ins,
+		u {
+			text-decoration: underline
+		}
+
+		sub,
+		sup {
+			font-size: 75%;
+			line-height: 0;
+			position: relative;
+			vertical-align: baseline
+		}
+
+		sup {
+			top: -.5em
+		}
+
+		sub {
+			bottom: -.25em
+		}
+
+		* {
+			border: 0;
+			border-collapse: separate;
+			border-spacing: 0;
+			box-sizing: border-box;
+			margin: 0;
+			max-width: 100%;
+			outline: 0;
+			padding: 0;
+			vertical-align: baseline
+		}
+
+		html,
+		body {
+			width: 100%
+		}
+
+		html {
+			height: 100%
+		}
+
+		body {
+			color: #1a1919;
+		}
+
+		p,
+		ul,
+		ol,
+		dl,
+		blockquote,
+		hr,
+		pre,
+		table,
+		form,
+		fieldset,
+		figure,
+		address {
+			margin-bottom: 29.7px
+		}
+
+		section {
+			margin-left: auto;
+			margin-right: auto;
+			width: 780px
+		}
+
+		article,
+		header,
+		footer {
+			padding: 43.2px
+		}
+
+		article {
+			word-wrap: break-word;
+			background: #fff;
+			border: 1px solid #d9d9d9;
+			border-radius: 7.2px
+		}
+
+		nav {
+			text-align: center
+		}
+
+		nav ul {
+			list-style: none;
+			margin-left: 0;
+			text-align: center
+		}
+
+		nav ul li {
+			display: inline-block;
+			margin-left: 9px;
+			margin-right: 9px;
+			vertical-align: middle
+		}
+
+		nav ul li:last-child {
+			margin-right: 0
+		}
+
+		ol,
+		ul {
+			margin-left: 31.5px
+		}
+
+		li dl,
+		li ol,
+		li ul {
+			margin-bottom: 0
+		}
+
+		dl {
+			display: inline-block
+		}
+
+		dt {
+			padding: 0 18px
+		}
+
+		dd {
+			padding: 0 18px 4.5px
+		}
+
+		dd:last-of-type {
+			border-bottom: 1.08px solid #595959
+		}
+
+		dd+dt {
+			border-top: 1.08px solid #595959;
+			padding-top: 9px
+		}
+
+		blockquote {
+			border-left: 2.16px solid #595959;
+			padding: 4.5px 18px 4.5px 15.84px
+		}
+
+		blockquote footer {
+			color: #595959;
+			font-size: 13.5px;
+			margin: 0
+		}
+
+		blockquote p {
+			margin-bottom: 0
+		}
+
+		img {
+			height: auto;
+			margin: 0 auto
+		}
+
+		figure img {
+			display: block
+		}
+
+		/*# sourceMappingURL=tacit-css-1.3.2.min.css.map */
+		footer {
+			padding: 10px;
+			width: 780px;
+			margin: auto;
+		}
+
+		.subnav {
+			width: 100%;
+			text-align: left;
+			float: left;
+			font-size: 12pt;
+		}
+
+		.subnav ul {
+			text-align: left;
+		}
+
+		.subnav ul li {
+			width: 90%;
+		}
+
+		@media only screen and (max-witdh: 768px) {
+			.subnav ul li {
+				width: 100%;
+			}
+		}
+
+		#search-location {
+			margin-bottom: 1px;
+			border: 1px solid #d9d9d9;
+			width: 100%;
+		}
+
+		#search-location-container,
+		#search-tag-container {
+			position: relative;
+			width: 65%;
+			display: inline-block;
+		}
+
+		.search-suggestions {
+			z-index: 1;
+			width: 100%;
+			border: 1px solid #d9d9d9;
+			position: absolute;
+			background: #fff;
+			border-radius: 3.6px;
+		}
+
+		.search-option {
+			padding: 5px 10px;
+		}
+
+		.search-option:hover {
+			background: #d9d9d9;
+			cursor: pointer;
+		}
+
+		@media only screen and (max-width:768px) {
+			#search-salary-btn {
+				width: 100%;
+				margin-right: 0;
+				margin-bottom: 20px;
+				float: initial;
+			}
+
+			#search-location-container,
+			#search-tag-container {
+				width: 100%;
+			}
+		}
+
+		#search-btn {
+			width: 30%;
+			margin-right: 0;
+			float: right;
+			padding: 5.53px 10px;
+
+			border:1px solid {
+					{
+					.PrimaryColor
+				}
+			}
+
+			;
+		}
+
+		#post-btn {
+			width: auto;
+			float: right;
+			margin-right: 0;
+			padding-right: 25px;
+			padding-left: 25px;
+		}
+
+		@media only screen and (max-width:768px) {
+			.subnav {
+				width: 100%;
+			}
+
+			#search-location {
+				width: 100%;
+				border: 1px solid #d9d9d9
+			}
+
+			#search-btn {
+				width: 100%;
+				margin-right: 0;
+				margin-bottom: 20px;
+				float: initial;
+			}
+
+			#post-btn {
+				width: auto;
+			}
+		}
+
+		.line-item {
+			background: #fff;
+			padding: 20px;
+			margin: 10px auto;
+		}
+
+		input {
+			-webkit-appearance: none;
+			-moz-appearance: none;
+			appearance: none;
+		}
+
+		.job-desc {
+			float: left;
+			padding: 0px 0px 0px 0px;
+			font-size: 12pt;
+			display: none;
+		}
+
+		.job-desc>h3 {
+			margin-top: 10px;
+		}
+
+		.job-icon {
+			float: left;
+			width: 60px;
+			border-radius: 60px;
+			margin-right: 10px;
+			border: 1px solid #ccc;
+		}
+
+		a:hover {
+			cursor: pointer;
+		}
+
+		.main-title {
+			font-weight: bold;
+			margin: 0 0 auto;
+			width: 80%;
+
+			color: {
+					{
+					.PrimaryColor
+				}
+			}
+
+			;
+		}
+
+		.line-item-sponsored-1 {
+			border-radius: 8px;
+		}
+
+		@media only screen and (max-width: 768px) {
+			.email-subscribe-item {
+				margin-top: 15px;
+				margin-bottom: 0;
+			}
+		}
+
+		.apply-box {
+			display: none;
+			z-index: 2;
+			width: 50%;
+			height: auto;
+			position: fixed;
+			margin: 5% auto;
+			top: 40px;
+			left: 0;
+			right: 0;
+			background: #fff;
+		}
+
+		@media only screen and (max-width: 768px) {
+			.apply-box {
+				width: 90%;
+			}
+		}
+
+		.overlay-effect {
+			display: none;
+			width: 100%;
+			height: 100%;
+			position: fixed;
+			top: 0;
+			left: 0;
+			background: rgba(0, 0, 0, 0.5);
+			z-index: 1
+		}
+
+		.upload-file-label:hover {
+			cursor: pointer;
+		}
+
+		.clearfix::after {
+			content: "";
+			clear: both;
+			display: table;
+		}
+
+		input[type="checkbox"] {
+			-webkit-appearance: checkbox;
+			-moz-appearance: checkbox;
+			appearance: checkbox;
+		}
+
+		.apply-link {
+			font-size: 18px;
+			font-weight: 400;
+			line-height: 29.7px;
+			border-radius: 3.6px;
+
+			background: {
+					{
+					.PrimaryColor
+				}
+			}
+
+			;
+			color: #fff;
+			cursor: pointer;
+			display: inline;
+			margin-bottom: 18px;
+			margin-right: 7.2px;
+			padding: 6.525px 23.4px;
+			text-align: center;
+		}
+
+		.apply-link:hover {
+			text-decoration: none;
+
+			background: {
+					{
+					.SecondaryColor
+				}
+			}
+
+			;
+			color:#ffffff;
+		}
+
+		.menu-header {
+			text-align: left;
+			width: 100%;
+			margin: 20px auto;
+			border-bottom: 1px solid #d9d9d9;
+		}
+
+		.menu-header a {
+			white-space: pre;
+			color: black;
+			font-size: 12pt;
+			font-weight: bold;
+			padding-right: 5px;
+		}
+
+		header {
+			padding: 0 10px;
+			width: 780px;
+			margin: auto;
+		}
+
+		.hover-pointer {
+			cursor: pointer;
+		}
+	</style>
+	{{ template "feedback-box-css" . }}
+	{{ template "newsletter-banner-css" . }}
+	{{ template "google-analytics" }}
+</head>
+
+<body>
+	{{ template "feedback-box-html" . }}
+	{{ template "newsletter-banner-html" . }}
+	<header>
+		<nav class="menu-header">
+			<img src="/x/s/m/{{ .SiteLogoImageID }}?w=50&h=50" class="hover-pointer"
+				onclick="javascript:window.location.href='/'"
+				style="width: 30px; margin-right: 10px; border-radius: 50px; margin-top: 0px; border: 1px solid #000; float: left;">
+			<small style="display:block;float:left;margin-bottom:10px;">
+				<a href="/">Jobs</a>&bull;
+				<a style="text-decoration: underline;"
+					href="/Companies-Using-{{ .SiteJobCategoryURLEncoded }}">Companies</a>&bull;
+				<br>
+			</small>
 			</div>
-			{{ if .ComplementaryRemote }}
-			<small><b>No Companies</b> Using {{ .SiteJobCategory }} Found{{ if .LocationFilter }}in <b>{{ .LocationFilter }}</b>{{ end }}</b></small><br /><br />
+			<div style="clear: both;"></div>
+		</nav>
+	</header>
+	<section style="padding: 0 10px;">
+		<input type="submit" value="Post a Job" id="post-btn"
+			onclick="window.location.href='/Hire-{{ .SiteJobCategoryURLEncoded }}-Developers';">
+		<p>
+			{{ if and .LocationFilter $isRemote }}
+		<h1 class="main-title">Remote Companies Using {{ .SiteJobCategory }}</h1><br />
+		{{ else }}
+		<h1 class="main-title">Companies Using {{ .SiteJobCategory }}{{ if .LocationFilter }} in {{ .LocationFilter }}{{ if .Country }}, {{ .Country }}{{ end }}{{ end }}</h1><br />
+		{{ end }}
+		<h2 style="font-size:12pt;font-weight:100;margin-top:20px">Explore <b>{{ .TextJobCount }} companies</b> hiring
+			{{ .SiteJobCategory }} developers {{ if .LocationFilter }} in <b>{{ .LocationFilter }}{{ if .Region }}, {{ .Region }}{{ end }}{{ if .Country }}, {{ .Country }}{{ end }}</b>{{ end }} in {{ .MonthAndYear }} like
+			<b>{{ .TextCompanies }}</b> hiring <b>{{ .TextJobTitles }}</b>. Last post <time
+				datetime="{{ .LastJobPostedAt }}">{{ .LastJobPostedAtHumanized }}</time>
+		</h2>
+		</p>
+		<div class="overlay-effect" id="overlay-0" onclick="closeApplyPopup();"></div>
+		<article class="apply-box" id="apply-box-0">
+			<h3 id="apply-box-title" style="margin-top: 10px;">Create your free profile to continue</h3>
+			<div id="apply-box-container">
+				<p id="profile-info"></p>
+				<div style="margin-bottom: 20px; text-align: center;">
+					{{ range $i, $j := .TopDevelopers }}
+					<img width="50" height="50" style="margin-left:-20px;border-radius: 50px; border: 1px solid #aaa;"
+						src="/x/s/m/{{ .ImageID }}?w=50&h=50" title="{{ .Name }}" alt="{{ .Name }}" />
+					{{ end }}
+				</div>
+				<ul>
+					{{ if .DeveloperMessagesSentLastMonth }}
+					<li><b>{{ .DeveloperMessagesSentLastMonth }}</b> direct messages sent by companies to developers on
+						{{ .SiteName }} in the last 30 days</li>
+					{{ end }}
+					{{ if .DevelopersRegisteredLastMonth }}
+					<li><b>{{ .DevelopersRegisteredLastMonth }}</b> developers joined {{ .SiteName }} in the last 30
+						days
+					</li>
+					{{ end }}
+					{{ if .DeveloperProfilePageViewsLastMonth }}
+					<li><b>{{ humannumber .DeveloperProfilePageViewsLastMonth }}</b> developer profiles page views in
+						the
+						last 30 days</li>
+					{{ end }}
+					<li>Get access to our <a href="/{{ .SiteJobCategoryURLEncoded }}-Developer-Salary-Remote"
+							target="_blank">Salary Explorer</a></li>
+					<li>Last developer joined <b><time datetime="{{ .LastDevCreatedAt }}">{{ .LastDevCreatedAtHumanized }}</time></b></li>
+				</ul>
+				<br />
+				<input type="submit" id="apply-submit" value="Create Free Profile"
+					onclick="window.location.href='/Join-{{ .SiteJobCategory }}-Community';" style="float: right;">
+			</div>
+		</article>
+		<div style="margin-bottom:10px;">
+			<div id="search-location-container">
+				<input autocomplete="off" type="text" value="{{ .LocationFilter }}" placeholder="City, Country"
+					id="search-location" />
+				<div id="search-location-suggestions" style="display:none;" class="search-suggestions">
+					<div class="search-option">Rome</div>
+				</div>
+			</div>
+			<input type="submit" {{ if .LoggedUser }}onclick="search();" {{ else }}onclick="showPopup();" {{ end }}
+				value="Find Companies" id="search-btn" />
+		</div>
+		{{ if .ComplementaryRemote }}
+		<small><b>No Companies</b> Using {{ .SiteJobCategory }} Found{{ if .LocationFilter }}in <b>{{ .LocationFilter }}</b>{{ end }}</b></small><br /><br />
 		<small>Showing {{ len .Companies }} of {{ .TotalCompaniesCount }} <b>Remote</b> Companies Using {{ .SiteJobCategory }} available instead</small><br />
 		{{ else }}
-		<small>{{ len .Companies }} of {{ .TotalCompaniesCount }} Companies using {{ .SiteJobCategory }} {{ if .LocationFilter }}in <b>{{ .LocationFilter }}{{ if .Country }}, {{ .Country }}{{ end }}</b>{{ end }} &bull; Sort by <b>Most Recent</b></small><br />
+		<small>{{ len .Companies }} of {{ .TotalCompaniesCount }} Companies using {{ .SiteJobCategory }} {{ if .LocationFilter }}in <b>{{ .LocationFilter }}{{ if .Country }}, {{ .Country }}{{ end }}</b>{{ end }} &bull;
+			Sort by <b>Most Recent</b></small><br />
 		{{ end }}
 		{{ $siteJobCat := .SiteJobCategory }}
 		{{ range $i, $j := .Companies }}
-		<article class="line-item"{{ if isTimeAfterNow .CompanyPageEligibilityExpiredAt }}style="background-color: #FFF8C7;"{{ end }}>
-			<img loading="lazy" width="60" height="60" src="/x/s/m/{{ .IconImageID }}?w=100&h=100" class="job-icon" alt="{{ .Name }} Logo" title="{{ .Name }} Logo" />
+		<article class="line-item" {{ if isTimeAfterNow .CompanyPageEligibilityExpiredAt }}style="background-color: #FFF8C7;" {{ end }}>
+			<img loading="lazy" width="60" height="60" src="/x/s/m/{{ .IconImageID }}?w=100&h=100" class="job-icon"
+				alt="{{ .Name }} Logo" title="{{ .Name }} Logo" />
 			<div style="float: left;">
-				<a href="/company/{{ .Slug }}" title="{{ .Name }} is Hiring {{ $siteJobCat }} Engineers"><b>{{ .Name }}</b></a>{{ if isTimeAfterNow .CompanyPageEligibilityExpiredAt }} &bull; <small>Sponsored</small>{{ end }}<br />
+				<a href="/company/{{ .Slug }}" title="{{ .Name }} is Hiring {{ $siteJobCat }} Engineers"><b>{{ .Name }}</b></a>{{ if isTimeAfterNow .CompanyPageEligibilityExpiredAt }} &bull;
+				<small>Sponsored</small>{{ end }}<br />
 				<b>{{ .Locations }}</b>
 				<br />
-				<small><b>Last Job Posted:</b> {{ humantime .LastJobCreatedAt }}</small><br/>
+				<small><b>Last Job Posted:</b> {{ humantime .LastJobCreatedAt }}</small><br />
 				<small><b>{{ $siteJobCat }} Job Openings:</b> {{ .ActiveJobCount }}</small>
 				{{ if .Description }}<br /><small>{{ .Description }}</small>{{ end }}
 			</div>
@@ -160,9 +1033,12 @@ a:hover{cursor:pointer;}.main-title{font-weight: bold;margin: 0 0 auto;width:80%
 		{{ end }}
 		{{ if not .LoggedUser }}
 		<article class="line-item" id="email-subscribe-banner" style="margin-top:10px;">
-			<div style="width: 50%;font-size:15pt;text-align:center;font-weight:bold;display:table;margin:5px auto 20px auto;" id="email-subscribe-item-text">Get a weekly email with all new {{ .SiteJobCategory }} jobs</div>
-			<input type="email" name="job-email-subscription" id="job-email-subscription" style="width:50%;margin:10px auto;display:table;border: 1px solid #d9d9d9;" placeholder="Your Email">
-			<input type="submit" onclick="subscribe()" id="email-subscribe-item-btn" value="Join {{ .EmailSubscribersCount }}+ others" style="width:50%;display:table;margin:5px auto;"/>
+			<div style="width: 50%;font-size:15pt;text-align:center;font-weight:bold;display:table;margin:5px auto 20px auto;"
+				id="email-subscribe-item-text">Get a weekly email with all new {{ .SiteJobCategory }} jobs</div>
+			<input type="email" name="job-email-subscription" id="job-email-subscription"
+				style="width:50%;margin:10px auto;display:table;border: 1px solid #d9d9d9;" placeholder="Your Email">
+			<input type="submit" onclick="subscribe()" id="email-subscribe-item-btn"
+				value="Join {{ .EmailSubscribersCount }}+ others" style="width:50%;display:table;margin:5px auto;" />
 		</article>
 		{{ end }}
 		{{ if .LocationFilter }}
@@ -170,7 +1046,8 @@ a:hover{cursor:pointer;}.main-title{font-weight: bold;margin: 0 0 auto;width:80%
 		<small>{{ len .Companies }} of {{ .TotalCompaniesCount }} Companies using {{ .SiteJobCategory }} found {{ if .LocationFilter }}in <b>{{ .LocationFilter }}{{ if .Country }}, {{ .Country }}{{ end }}</b>{{ end }}</small><br />
 		{{ end }}
 		{{ else }}
-		<small>{{ len .Companies }} of {{ .TotalCompaniesCount }} Companies using {{ .SiteJobCategory }} found</small><br />
+		<small>{{ len .Companies }} of {{ .TotalCompaniesCount }} Companies using {{ .SiteJobCategory }}
+			found</small><br />
 		{{ end }}
 		<br />
 		<nav>
@@ -201,92 +1078,127 @@ a:hover{cursor:pointer;}.main-title{font-weight: bold;margin: 0 0 auto;width:80%
 				{{ end }}
 			</ul>
 		</nav>
-		</section>
-		<footer>
-			<h4 style="margin-left: 9px;">Companies Using {{ .SiteJobCategory }}{{ if .LocationFilter }} In {{ .LocationFilter }}{{ if .Region }}, {{ .Region }}{{ end }}{{ if .Country}}, {{ .Country }}{{ end }}{{ end }}</h4>
-			<nav class="subnav" style="width:100%;">
-				<p style="padding: 10px;">
-				{{ .SiteJobCategory }} is one of the most popular and fastest growing programming languages. New companies like <b>{{ .TextCompanies }}</b> have started adopting Go each year and the demand for Go engineers has never been so strong. The {{ .SiteJobCategory }} job market is thriving with hundreds and thousands of companies hiring {{ .SiteJobCategory }} engineers. Here you can see most of the companies that have hired or are hiring {{ .SiteJobCategory }} engineers on {{ .SiteName }} as of {{ .MonthAndYear }}. The last company has posted on {{ .SiteName }} <time datetime="{{ .LastJobPostedAt }}">{{ .LastJobPostedAtHumanized }}</time>
-				</p>
-			</nav>
-			<h4 style="margin-left: 9px;">Get Hired{{ if .LocationFilter }} In {{ .LocationFilter }}{{ if .Region }}, {{ .Region }}{{ if .Country }}, {{ .Country }}{{ end }}{{ end }}{{ end }}</h4>
-			<nav class="subnav" style="width:100%;">
-				<ul>
-					<li><a href="/Join-{{ .SiteJobCategoryURLEncoded }}-Community">Join the {{ .SiteJobCategory }} Developers Community</a></li>
-				</ul>
-			</nav>
-			<h4 style="margin-left: 9px;">Related To Companies Hiring Go Developers{{ if .LocationFilter }} In {{ .LocationFilter }}{{ if .Region }}, {{ .Region }}{{ end }}{{ if .Country }}, {{ .Country }}{{ end }}{{ end }}</h4>
-			<nav class="subnav">
-				<ul>
-					<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Developer-Salary-{{ if .LocationFilter }}{{ .LocationURLEncoded }}{{ else }}Remote{{ end }}">Average Salary For {{ .SiteJobCategory }} Developers{{ if .LocationFilter }} in {{ .LocationFilter }}{{ if .Country }}, {{ .Country }}{{ end }}{{ end }}</a></li>
-					<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Developers{{ if .LocationFilter }}-In-{{ .LocationURLEncoded }}{{ end }}">{{ .SiteJobCategory }} Developers{{ if .LocationFilter }} in {{ .LocationFilter }}{{ if .Country }}, {{ .Country }}{{ end }}{{ end }}</a></li>
-					<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Jobs-{{ if .LocationFilter }}In-{{ .LocationURLEncoded }}{{ else }}-Remote{{ end }}">{{ .SiteJobCategory }} Jobs {{ if .LocationFilter }} in {{ .LocationFilter }}{{ if .Country }}, {{ .Country }}{{ end }}{{ end }}</a></li>
-				</ul>
-			</nav>
-			<h4 style="margin-left: 9px;">{{ .SiteJobCategory }} Jobs Searches Related To Companies Hiring Developers{{ if .LocationFilter }} in {{ .LocationFilter }}{{ end }}</h4>
-			<nav class="subnav">
-				<ul>
-					<li><a href="/Remote-{{ .SiteJobCategoryURLEncoded }}-Jobs">Remote {{ .SiteJobCategory }} Jobs</a></li>
-					<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Jobs-In-London">{{ .SiteJobCategory }} Jobs in London</a></li>
-					<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Jobs-In-Berlin">{{ .SiteJobCategory }} Jobs in Berlin</a></li>
-					<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Jobs-In-Amsterdam">{{ .SiteJobCategory }} Jobs in Amsterdam</a></li>
-					<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Jobs-In-New-York">{{ .SiteJobCategory }} Jobs in New York</a></li>
-					<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Jobs-In-San-Francisco">{{ .SiteJobCategory }} Jobs in San Francisco</a></li>
-				</ul>
-			</nav>
-			<nav class="subnav">
-				<ul>
-					<li><a href="/{{ .SiteJobCategoryURLEncoded }}-DevOps-Jobs">{{ .SiteJobCategory }} DevOps Jobs</a></li>
-					<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Fintech-Jobs">{{ .SiteJobCategory }} Fintech Jobs</a></li>
-					<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Blockchain-Jobs">{{ .SiteJobCategory }} Blockchain Jobs</a></li>
-					<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Site-Reliability-Jobs">{{ .SiteJobCategory }} Site Reliability Jobs</a></li>
-					<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Distributed-Systems-Jobs">{{ .SiteJobCategory }} Distributed Systems Jobs</a></li>
-					<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Senior-Jobs">{{ .SiteJobCategory }} Senior Jobs</a></li>
-				</ul>
-			</nav>
-			<h4 style="margin-left: 9px;">Companies Hiring {{ .SiteJobCategory }} Developers Worldwide</h4>
-			<nav class="subnav">
-				<ul>
-					<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Jobs-In-United-Kingdom">{{ .SiteJobCategory }} Jobs in United Kingdom</a></li>
-		<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Jobs-In-Germany">{{ .SiteJobCategory }} Jobs in Germany</a></li>
-		<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Jobs-In-Netherlands">{{ .SiteJobCategory }} Jobs in Netherlands</a></li>
-		<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Jobs-In-United-States">{{ .SiteJobCategory }} Jobs in United States</a></li>
-		<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Jobs-In-Canada">{{ .SiteJobCategory }} Jobs in Canada</a></li>
-		<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Jobs-In-Switzerland">{{ .SiteJobCategory }} Jobs in Switzerland</a></li>
-		<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Jobs-In-Australia">{{ .SiteJobCategory }} Jobs in Australia</a></li>
-        </ul>
-    </nav>
-    <h4 style="margin-left: 9px;">Explore {{ .SiteJobCategory }} Developer Salary Data</h4>
-    <nav class="subnav">
-        <ul>
-		<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Developer-Salary-Remote">{{ .SiteJobCategory }} Developer Salary Remote</a></li>
-		<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Developer-Salary-London">{{ .SiteJobCategory }} Developer Salary London</a></li>
-		<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Developer-Salary-Berlin">{{ .SiteJobCategory }} Developer Salary Berlin</a></li>
-		<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Developer-Salary-Amsterdam">{{ .SiteJobCategory }} Developer Salary Amsterdam</a></li>
-		<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Developer-Salary-New-York">{{ .SiteJobCategory }} Developer Salary New York</a></li>
-		<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Developer-Salary-Paris">{{ .SiteJobCategory }} Developer Salary Paris</a></li>
-        </ul>
-    </nav>
-    <h4 style="margin-left: 9px;">{{ .SiteName }}</h4>
-    <nav class="subnav">
-        <ul>
-            <li><a href="/">Jobs</a></li>
-	    <li><a target="_blank" rel="noopener" href="https://twitter.com/{{ .SiteTwitter }}">{{ .SiteName }} on Twitter</a></li>
-	    <li><a target="_blank" rel="noopener" href="https://github.com/{{ .SiteGithub }}">{{ .SiteName }} on GitHub</a></li>
-	    <li><a target="_blank" rel="noopener" href="https://www.youtube.com/channel/UCq4YrlwwXwF74Z3g-VDae2w">{{ .SiteName }} YouTube Channel</a></li>
-	    <li><a href="/rss">{{ .SiteName }} RSS Feed</a></li>
-            <li><a href="/support">Support</a></li>
-	    <li><a href="/about">About {{ .SiteName }}</a></li>
-            <li><a href="/terms-of-service">T&Cs</a></li>
-            <li><a href="/privacy-policy">Privacy Policy</a></li>
-        </ul>
-	</nav>
-  </footer>
-    <script>
-        function isEmail(email) {
-            var re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-            return re.test(email);
-        }
+	</section>
+	<footer>
+		<h4 style="margin-left: 9px;">Companies Using {{ .SiteJobCategory }}{{ if .LocationFilter }} In {{ .LocationFilter }}{{ if .Region }}, {{ .Region }}{{ end }}{{ if .Country}}, {{ .Country }}{{ end }}{{ end }}
+		</h4>
+		<nav class="subnav" style="width:100%;">
+			<p style="padding: 10px;">
+				{{ .SiteJobCategory }} is one of the most popular and fastest growing programming languages. New
+				companies like <b>{{ .TextCompanies }}</b> have started adopting Go each year and the demand for Go
+				engineers has never been so strong. The {{ .SiteJobCategory }} job market is thriving with hundreds and
+				thousands of companies hiring {{ .SiteJobCategory }} engineers. Here you can see most of the companies
+				that have hired or are hiring {{ .SiteJobCategory }} engineers on {{ .SiteName }} as of {{ .MonthAndYear }}.
+				The last company has posted on {{ .SiteName }} <time datetime="{{ .LastJobPostedAt }}">{{ .LastJobPostedAtHumanized }}</time>
+			</p>
+		</nav>
+		<h4 style="margin-left: 9px;">Get Hired{{ if .LocationFilter }} In {{ .LocationFilter }}{{ if .Region }}, {{ .Region }}{{ if .Country }}, {{ .Country }}{{ end }}{{ end }}{{ end }}</h4>
+		<nav class="subnav" style="width:100%;">
+			<ul>
+				<li><a href="/Join-{{ .SiteJobCategoryURLEncoded }}-Community">Join the {{ .SiteJobCategory }}
+						Developers Community</a></li>
+			</ul>
+		</nav>
+		<h4 style="margin-left: 9px;">Related To Companies Hiring Go Developers{{ if .LocationFilter }} In {{ .LocationFilter }}{{ if .Region }}, {{ .Region }}{{ end }}{{ if .Country }}, {{ .Country }}{{ end }}{{ end }}</h4>
+		<nav class="subnav">
+			<ul>
+				<li><a
+						href="/{{ .SiteJobCategoryURLEncoded }}-Developer-Salary-{{ if .LocationFilter }}{{ .LocationURLEncoded }}{{ else }}Remote{{ end }}">Average
+						Salary For {{ .SiteJobCategory }} Developers{{ if .LocationFilter }} in {{ .LocationFilter }}{{ if .Country }}, {{ .Country }}{{ end }}{{ end }}</a></li>
+				<li><a
+						href="/{{ .SiteJobCategoryURLEncoded }}-Developers{{ if .LocationFilter }}-In-{{ .LocationURLEncoded }}{{ end }}">{{ .SiteJobCategory }} Developers{{ if .LocationFilter }} in {{ .LocationFilter }}{{ if .Country }}, {{ .Country }}{{ end }}{{ end }}</a></li>
+				<li><a
+						href="/{{ .SiteJobCategoryURLEncoded }}-Jobs-{{ if .LocationFilter }}In-{{ .LocationURLEncoded }}{{ else }}-Remote{{ end }}">{{ .SiteJobCategory }} Jobs {{ if .LocationFilter }} in {{ .LocationFilter }}{{ if .Country }}, {{ .Country }}{{ end }}{{ end }}</a></li>
+			</ul>
+		</nav>
+		<h4 style="margin-left: 9px;">{{ .SiteJobCategory }} Jobs Searches Related To Companies Hiring Developers{{ if .LocationFilter }} in {{ .LocationFilter }}{{ end }}</h4>
+		<nav class="subnav">
+			<ul>
+				<li><a href="/Remote-{{ .SiteJobCategoryURLEncoded }}-Jobs">Remote {{ .SiteJobCategory }} Jobs</a></li>
+				<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Jobs-In-London">{{ .SiteJobCategory }} Jobs in London</a>
+				</li>
+				<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Jobs-In-Berlin">{{ .SiteJobCategory }} Jobs in Berlin</a>
+				</li>
+				<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Jobs-In-Amsterdam">{{ .SiteJobCategory }} Jobs in
+						Amsterdam</a></li>
+				<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Jobs-In-New-York">{{ .SiteJobCategory }} Jobs in New
+						York</a></li>
+				<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Jobs-In-San-Francisco">{{ .SiteJobCategory }} Jobs in San
+						Francisco</a></li>
+			</ul>
+		</nav>
+		<nav class="subnav">
+			<ul>
+				<li><a href="/{{ .SiteJobCategoryURLEncoded }}-DevOps-Jobs">{{ .SiteJobCategory }} DevOps Jobs</a></li>
+				<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Fintech-Jobs">{{ .SiteJobCategory }} Fintech Jobs</a>
+				</li>
+				<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Blockchain-Jobs">{{ .SiteJobCategory }} Blockchain
+						Jobs</a></li>
+				<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Site-Reliability-Jobs">{{ .SiteJobCategory }} Site
+						Reliability Jobs</a></li>
+				<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Distributed-Systems-Jobs">{{ .SiteJobCategory }}
+						Distributed Systems Jobs</a></li>
+				<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Senior-Jobs">{{ .SiteJobCategory }} Senior Jobs</a></li>
+			</ul>
+		</nav>
+		<h4 style="margin-left: 9px;">Companies Hiring {{ .SiteJobCategory }} Developers Worldwide</h4>
+		<nav class="subnav">
+			<ul>
+				<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Jobs-In-United-Kingdom">{{ .SiteJobCategory }} Jobs in
+						United Kingdom</a></li>
+				<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Jobs-In-Germany">{{ .SiteJobCategory }} Jobs in
+						Germany</a></li>
+				<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Jobs-In-Netherlands">{{ .SiteJobCategory }} Jobs in
+						Netherlands</a></li>
+				<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Jobs-In-United-States">{{ .SiteJobCategory }} Jobs in
+						United States</a></li>
+				<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Jobs-In-Canada">{{ .SiteJobCategory }} Jobs in Canada</a>
+				</li>
+				<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Jobs-In-Switzerland">{{ .SiteJobCategory }} Jobs in
+						Switzerland</a></li>
+				<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Jobs-In-Australia">{{ .SiteJobCategory }} Jobs in
+						Australia</a></li>
+			</ul>
+		</nav>
+		<h4 style="margin-left: 9px;">Explore {{ .SiteJobCategory }} Developer Salary Data</h4>
+		<nav class="subnav">
+			<ul>
+				<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Developer-Salary-Remote">{{ .SiteJobCategory }} Developer
+						Salary Remote</a></li>
+				<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Developer-Salary-London">{{ .SiteJobCategory }} Developer
+						Salary London</a></li>
+				<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Developer-Salary-Berlin">{{ .SiteJobCategory }} Developer
+						Salary Berlin</a></li>
+				<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Developer-Salary-Amsterdam">{{ .SiteJobCategory }}
+						Developer Salary Amsterdam</a></li>
+				<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Developer-Salary-New-York">{{ .SiteJobCategory }}
+						Developer Salary New York</a></li>
+				<li><a href="/{{ .SiteJobCategoryURLEncoded }}-Developer-Salary-Paris">{{ .SiteJobCategory }} Developer
+						Salary Paris</a></li>
+			</ul>
+		</nav>
+		<h4 style="margin-left: 9px;">{{ .SiteName }}</h4>
+		<nav class="subnav">
+			<ul>
+				<li><a href="/">Jobs</a></li>
+				<li><a target="_blank" rel="noopener" href="https://twitter.com/{{ .SiteTwitter }}">{{ .SiteName }} on
+						Twitter</a></li>
+				<li><a target="_blank" rel="noopener" href="https://github.com/{{ .SiteGithub }}">{{ .SiteName }} on
+						GitHub</a></li>
+				<li><a target="_blank" rel="noopener" href="https://www.youtube.com/channel/UCq4YrlwwXwF74Z3g-VDae2w">{{ .SiteName }} YouTube Channel</a></li>
+				<li><a href="/rss">{{ .SiteName }} RSS Feed</a></li>
+				<li><a href="/support">Support</a></li>
+				<li><a href="/about">About {{ .SiteName }}</a></li>
+				<li><a href="/terms-of-service">T&Cs</a></li>
+				<li><a href="/privacy-policy">Privacy Policy</a></li>
+			</ul>
+		</nav>
+	</footer>
+	<script>
+		function isEmail(email) {
+			var re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+			return re.test(email);
+		}
 		function closeApplyPopup() {
 			document.getElementById('apply-box-0').style.display = 'none';
 			document.getElementById('overlay-0').style.display = 'none';
@@ -295,189 +1207,190 @@ a:hover{cursor:pointer;}.main-title{font-weight: bold;margin: 0 0 auto;width:80%
 			document.getElementById('apply-box-0').style.display = 'block';
 			document.getElementById('overlay-0').style.display = 'block';
 		}
-        var getJSON = function(uri, cb) {
-            var xhr = new XMLHttpRequest();
-            xhr.open('GET', uri, true);
-            xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
-            xhr.send();
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    cb(xhr.status, JSON.parse(xhr.responseText));
-                }
-            }
-        };
-        var get = function(uri, cb) {
-            var xhr = new XMLHttpRequest();
-            xhr.open('GET', uri, true);
-            xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
-            xhr.send();
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    cb(xhr.status === 200);
-                }
-            }
-        };
-        var post = function(uri, formData, cb) {
-            var xhr = new XMLHttpRequest();
-            xhr.open('POST', uri, true);
-            xhr.send(formData);
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    cb(xhr.status);
-                }
-            }
-        }
-        function apply(howToApply, jobID) {
-          get('/x/j/c/'+jobID, function() {
-            document.getElementById('apply-job-id').value = jobID;
-            document.getElementById('apply-box-0').style.display = 'block';
-            document.getElementById('overlay-0').style.display = 'block';
-            document.getElementById('apply-email-poster').innerHTML = howToApply;
-          })
-        }
-        function displayJob(jobSlugID) {
-            var jobNode = document.getElementById(jobSlugID);
-            var toggleStatus = jobNode.getAttribute('data-toggle');
-            if (toggleStatus == "off") {
-                jobNode.style.display = 'block';
-                jobNode.setAttribute('data-toggle', 'on');
-            } else {
-                jobNode.style.display = 'none';
-                jobNode.setAttribute('data-toggle', 'off');
-            }
-        }
-        function showname () {
-            var name = document.getElementById('apply-cv');
-            if (name.files && name.files.length > 0) {
-              document.getElementById('apply-cv-label').innerHTML = name.files.item(0).name.replace(/[\u00A0-\u9999<>\&]/gim, function(i) {
-                return '&#' + i.charCodeAt(0) + ';';
-              });
-            }
-        };
-    document
-        .getElementById('search-location')
-        .addEventListener('keyup', function(event) {
-            event.preventDefault();
-            if (event.keyCode !== 13) {
-				{{ if not .LoggedUser }}
-				showPopup();
-				{{ else}}
-		document.getElementById('search-location-suggestions').style.display = 'none';
-		getJSON('/x/loc/autocomplete?k='+document.getElementById('search-location').value.trim(), function(status, res) {
-			if (status == 200 && typeof res != 'undefined') {
-				var suggestions = '';
-				for (var item of res) {
-					var display = item.name;
-					if (item.country) {
-						display+=', '+item.country;
-					}
-					display+=' '+item.emoji;
-					suggestions += '<div class="search-option" id="loc-option-'+item.name+'" data-val="'+item.name+'">'+display+'</div>';
-				}
-				if (suggestions != '') {
-				  document.getElementById('search-location-suggestions').innerHTML = suggestions;
-				  for (var item of res) {
-					document.getElementById('loc-option-'+item.name).addEventListener('click', function(e) {
-						document.getElementById('search-location').value = e.target.getAttribute('data-val');
-						document.getElementById('search-location-suggestions').style.display = 'none';
-					});
-				  }
-				  document.getElementById('search-location-suggestions').style.display = 'block';
+		var getJSON = function (uri, cb) {
+			var xhr = new XMLHttpRequest();
+			xhr.open('GET', uri, true);
+			xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
+			xhr.send();
+			xhr.onreadystatechange = function () {
+				if (xhr.readyState === 4) {
+					cb(xhr.status, JSON.parse(xhr.responseText));
 				}
 			}
-		})
-		    {{ end }}
-                return;
-            }
-            if (document.getElementById('search-location').value.trim() === '') {
-				window.location.href = '/Companies-Using-{{ .SiteJobCategoryURLEncoded }}';
-            }
-	    if (document.getElementById('search-location').value.trim() !== '') {
-				window.location.href = '/Companies-Using-{{ .SiteJobCategoryURLEncoded }}-In-'+encodeURIComponent(document.getElementById('search-location').value);
-            }
-        });
-	function search() {
-    document
-        .getElementById('search-btn')
-        .addEventListener('click', function() {
-            if (document.getElementById('search-location').value.trim() === '') {
-				window.location.href = '/Companies-Using-{{ .SiteJobCategoryURLEncoded }}';
-            }
-	    if (document.getElementById('search-location').value.trim() !== '') {
-				window.location.href = '/Companies-Using-{{ .SiteJobCategoryURLEncoded }}-In-'+encodeURIComponent(document.getElementById('search-location').value);
-            }
-        });
-	}
-    function hideEmailBanner() {
-            document.getElementById('email-subscribe-banner').style.display = 'none';
-	    document.getElementById('newsletter-banner').style.display = 'none';
-    }
-    function subscribe() {
-        var email = document.getElementById('job-email-subscription').value;
-        if (!isEmail(email)) {
-            alert('Please enter a valid email address!');
-            return;
-        }
-        get('/x/email/subscribe?email='+encodeURIComponent(email), function(success) {
-            if (success) {
-		hideEmailBanner();
-                alert('Thanks for subscribing!');
-                document.getElementById('job-email-subscription').value = '';
-            } else {
-                alert('Oops, there was an error with your subscription!');
-            }
-        });
-    }
-        function empty() {
-            var isThere = true;
-            for (var i = 0; i < arguments.length; i++) {
-                isThere &= typeof arguments[i] === "undefined" ? false : arguments[i].trim() !== "";
-            }
-            return !isThere;
-        };
-        var postMessage = function(body, cb) {
-            var xhr = new XMLHttpRequest();
-            xhr.open('POST', '/x/s/message', true);
-            xhr.setRequestHeader('Content-Type', 'application/json');
-            xhr.send(JSON.stringify(body));
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    cb(xhr.status === 200);
-                }
-            }
-        };
-        document.getElementById('feedback-submit').addEventListener('click', function(event) {
-		var email = document.getElementById('feedback-email').value;
-		var message = document.getElementById('feedback-message').value;
-		if (empty(email, message)) {
-			alert('Email and message cannot be blank');
-			return;
+		};
+		var get = function (uri, cb) {
+			var xhr = new XMLHttpRequest();
+			xhr.open('GET', uri, true);
+			xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
+			xhr.send();
+			xhr.onreadystatechange = function () {
+				if (xhr.readyState === 4) {
+					cb(xhr.status === 200);
+				}
+			}
+		};
+		var post = function (uri, formData, cb) {
+			var xhr = new XMLHttpRequest();
+			xhr.open('POST', uri, true);
+			xhr.send(formData);
+			xhr.onreadystatechange = function () {
+				if (xhr.readyState === 4) {
+					cb(xhr.status);
+				}
+			}
 		}
-		if (!isEmail(email)) {
-			alert('Please enter a valid email address');
-			return;
+		function apply(howToApply, jobID) {
+			get('/x/j/c/' + jobID, function () {
+				document.getElementById('apply-job-id').value = jobID;
+				document.getElementById('apply-box-0').style.display = 'block';
+				document.getElementById('overlay-0').style.display = 'block';
+				document.getElementById('apply-email-poster').innerHTML = howToApply;
+			})
 		}
-		postMessage({email: emaile}, function(status) {
-			if (status) {
-				alert('Thanks for your message!');
+		function displayJob(jobSlugID) {
+			var jobNode = document.getElementById(jobSlugID);
+			var toggleStatus = jobNode.getAttribute('data-toggle');
+			if (toggleStatus == "off") {
+				jobNode.style.display = 'block';
+				jobNode.setAttribute('data-toggle', 'on');
 			} else {
-					    alert('There was a problem posting your message. Please try again later or contact {{ .SupportEmail }}');
+				jobNode.style.display = 'none';
+				jobNode.setAttribute('data-toggle', 'off');
 			}
-			document.getElementById('feedback-email').value = '';
-			document.getElementById('feedback-message').value = '';
+		}
+		function showname() {
+			var name = document.getElementById('apply-cv');
+			if (name.files && name.files.length > 0) {
+				document.getElementById('apply-cv-label').innerHTML = name.files.item(0).name.replace(/[\u00A0-\u9999<>\&]/gim, function (i) {
+					return '&#' + i.charCodeAt(0) + ';';
+				});
+			}
+		};
+		document
+			.getElementById('search-location')
+			.addEventListener('keyup', function (event) {
+				event.preventDefault();
+				if (event.keyCode !== 13) {
+					{ { if not.LoggedUser } }
+					showPopup();
+					{ { else } }
+					document.getElementById('search-location-suggestions').style.display = 'none';
+					getJSON('/x/loc/autocomplete?k=' + document.getElementById('search-location').value.trim(), function (status, res) {
+						if (status == 200 && typeof res != 'undefined') {
+							var suggestions = '';
+							for (var item of res) {
+								var display = item.name;
+								if (item.country) {
+									display += ', ' + item.country;
+								}
+								display += ' ' + item.emoji;
+								suggestions += '<div class="search-option" id="loc-option-' + item.name + '" data-val="' + item.name + '">' + display + '</div>';
+							}
+							if (suggestions != '') {
+								document.getElementById('search-location-suggestions').innerHTML = suggestions;
+								for (var item of res) {
+									document.getElementById('loc-option-' + item.name).addEventListener('click', function (e) {
+										document.getElementById('search-location').value = e.target.getAttribute('data-val');
+										document.getElementById('search-location-suggestions').style.display = 'none';
+									});
+								}
+								document.getElementById('search-location-suggestions').style.display = 'block';
+							}
+						}
+					})
+					{ { end } }
+					return;
+				}
+				if (document.getElementById('search-location').value.trim() === '') {
+					window.location.href = '/Companies-Using-{{ .SiteJobCategoryURLEncoded }}';
+				}
+				if (document.getElementById('search-location').value.trim() !== '') {
+					window.location.href = '/Companies-Using-{{ .SiteJobCategoryURLEncoded }}-In-' + encodeURIComponent(document.getElementById('search-location').value);
+				}
+			});
+		function search() {
+			document
+				.getElementById('search-btn')
+				.addEventListener('click', function () {
+					if (document.getElementById('search-location').value.trim() === '') {
+						window.location.href = '/Companies-Using-{{ .SiteJobCategoryURLEncoded }}';
+					}
+					if (document.getElementById('search-location').value.trim() !== '') {
+						window.location.href = '/Companies-Using-{{ .SiteJobCategoryURLEncoded }}-In-' + encodeURIComponent(document.getElementById('search-location').value);
+					}
+				});
+		}
+		function hideEmailBanner() {
+			document.getElementById('email-subscribe-banner').style.display = 'none';
+			document.getElementById('newsletter-banner').style.display = 'none';
+		}
+		function subscribe() {
+			var email = document.getElementById('job-email-subscription').value;
+			if (!isEmail(email)) {
+				alert('Please enter a valid email address!');
+				return;
+			}
+			get('/x/email/subscribe?email=' + encodeURIComponent(email), function (success) {
+				if (success) {
+					hideEmailBanner();
+					alert('Thanks for subscribing!');
+					document.getElementById('job-email-subscription').value = '';
+				} else {
+					alert('Oops, there was an error with your subscription!');
+				}
+			});
+		}
+		function empty() {
+			var isThere = true;
+			for (var i = 0; i < arguments.length; i++) {
+				isThere &= typeof arguments[i] === "undefined" ? false : arguments[i].trim() !== "";
+			}
+			return !isThere;
+		};
+		var postMessage = function (body, cb) {
+			var xhr = new XMLHttpRequest();
+			xhr.open('POST', '/x/s/message', true);
+			xhr.setRequestHeader('Content-Type', 'application/json');
+			xhr.send(JSON.stringify(body));
+			xhr.onreadystatechange = function () {
+				if (xhr.readyState === 4) {
+					cb(xhr.status === 200);
+				}
+			}
+		};
+		document.getElementById('feedback-submit').addEventListener('click', function (event) {
+			var email = document.getElementById('feedback-email').value;
+			var message = document.getElementById('feedback-message').value;
+			if (empty(email, message)) {
+				alert('Email and message cannot be blank');
+				return;
+			}
+			if (!isEmail(email)) {
+				alert('Please enter a valid email address');
+				return;
+			}
+			postMessage({ email: emaile }, function (status) {
+				if (status) {
+					alert('Thanks for your message!');
+				} else {
+					alert('There was a problem posting your message. Please try again later or contact {{ .SupportEmail }}');
+				}
+				document.getElementById('feedback-email').value = '';
+				document.getElementById('feedback-message').value = '';
+				document.getElementById('feedback-box').style.display = 'none';
+				document.getElementById('feedback').style.display = 'block';
+			})
+		});
+		document.getElementById('feedback').addEventListener('click', function (event) {
+			document.getElementById('feedback').style.display = 'none';
+			document.getElementById('feedback-box').style.display = 'block';
+		});
+		document.getElementById('feedback-title').addEventListener('click', function (event) {
 			document.getElementById('feedback-box').style.display = 'none';
 			document.getElementById('feedback').style.display = 'block';
-		})
-	});
-    	document.getElementById('feedback').addEventListener('click', function(event) {
-		document.getElementById('feedback').style.display = 'none';
-		document.getElementById('feedback-box').style.display = 'block';
-    	});
-    	document.getElementById('feedback-title').addEventListener('click', function(event) {
-		document.getElementById('feedback-box').style.display = 'none';
-		document.getElementById('feedback').style.display = 'block';
-    	});
-    </script>
-    {{ template "newsletter-banner-js" . }}
+		});
+	</script>
+	{{ template "newsletter-banner-js" . }}
 </body>
+
 </html>

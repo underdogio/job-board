@@ -98,56 +98,18 @@ body{background:#ffffff;}
                 <div style="width:100%;margin-bottom: 30px;">
                     <article style="padding:20px 10px;width: 28%;height: auto;margin-right:5%;float:left;">
                         <h2 style="margin-top:0;text-align:center;">Basic Plan</h2>
-                        <input type="hidden" id="plan-1-item-price" value="{{ .Plan1IDPrice }}" />
-                        <input type="hidden" id="plan-1-total-price" value="{{ .Plan1IDPrice }}" />
+                        <input type="hidden" id="plan-1-item-price" value="{{ .PlanPrice }}" />
+                        <input type="hidden" id="plan-1-total-price" value="{{ .PlanPrice }}" />
                         <input type="hidden" id="plan-1-live-days-base" value="30" />
                         <p style="font-size:9pt;line-height:1rem;text-align:center;">
                             The Basic plan is ideal if you are just starting out and you want to try out {{ .SiteName }}.</p>
-                        <h4 id="plan-1-label-price" style="text-align:center;margin-top:10px;font-size:20pt;">US${{ .Plan1IDPrice }}</h4>
+                        <h4 id="plan-1-label-price" style="text-align:center;margin-top:10px;font-size:20pt;">US${{ .PlanPrice }}</h4>
                         <input type="submit" id="submit" value="Buy Now" onclick="renew('basic');" style="width:100%;">
                         <ul style="margin-top:20px;font-size: 10pt;">
                             <li>Live for <span id="plan-1-live-days">30</span> days</li>
                             <li>Standard ad</li>
                             <li>Company Icon</li>
                             <li>Business hours Mon-Fri email customer support</li>
-                        </ul>
-                    </article>
-                    <article style="padding:20px 10px;width: 28%;height: auto;margin-right:5%;float:left;">
-                        <h2 style="margin-top:0;text-align:center;">Pro Plan</h2>
-                        <input type="hidden" id="plan-2-item-price" value="{{ .Plan2IDPrice }}" />
-                        <input type="hidden" id="plan-2-total-price" value="{{ .Plan2IDPrice }}" />
-                        <input type="hidden" id="plan-2-featured-days-base" value="14" />
-                        <input type="hidden" id="plan-2-live-days-base" value="30" />
-                        <p style="font-size:9pt;line-height:1rem;text-align:center;">
-                            The Pro plan it's the most popular chosen by companies on {{ .SiteName }}.</p>
-                        <h4 id="plan-2-label-price" style="text-align:center;margin-top:10px;font-size:20pt;">US${{ .Plan2IDPrice }}</h4>
-                        <input type="submit" id="submit" value="Buy Now" onclick="renew('pro');" style="width:100%;">
-                        <ul style="margin-top:20px;font-size: 10pt;">
-                            <li>Live for <span id="plan-2-live-days">30</span> days</li>
-                            <li>Included in our weekly newsletter</li>
-                            <li>Shared across our media channels</li>
-                            <li>Pinned to the front-page for <b><span id="plan-2-featured-days">14</span> days</b></li>
-                            <li>Priority 24/7 email customer support</li>
-                        </ul>
-                    </article>
-                    <article style="padding:20px 10px;width: 28%;height: auto;margin-right:5%;float:left;">
-                        <h2 style="margin-top:0;text-align:center;">Platinum Plan</h2>
-                        <input type="hidden" id="plan-3-item-price" value="{{ .Plan3IDPrice }}" />
-                        <input type="hidden" id="plan-3-total-price" value="{{ .Plan3IDPrice }}" />
-                        <input type="hidden" id="plan-3-featured-days-base" value="30" />
-                        <input type="hidden" id="plan-3-live-days-base" value="30" />
-                        <p style="font-size:9pt;line-height:1rem;text-align:center;">
-                            The Platinum plan it's the best plan if you need to reach a lot of applicants very quickly</p>
-                        <h4 id="plan-3-label-price" style="text-align:center;margin-top:10px;font-size:20pt;">US${{ .Plan3IDPrice }}</h4>
-                        <input type="submit" id="submit" value="Buy Now" onclick="renew('platinum');" style="width:100%;">
-                        <ul style="margin-top:20px;font-size: 10pt;">
-                            <li>Live for <span id="plan-3-live-days">30</span> days</li>
-                            <li>Included in our weekly newsletter</li>
-                            <li>Shared across our media channels</li>
-                            <li>Pinned to the front-page for <b><span id="plan-3-featured-days">30</span> days</b></li>
-                            <li>Shared across our <a href="/blog" target="_blank">blog properties</a> for extra reach</li>
-                            <li>Your company is featured in the <a href="/Companies-Using-{{ .SiteJobCategoryURLEncoded }}" target="_blank">Companies page</a></li>
-                            <li>Priority 24/7 email customer support</li>
                         </ul>
                     </article>
                 </div>

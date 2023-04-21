@@ -811,7 +811,7 @@ func TriggerWeeklyNewsletter(svr server.Server, jobRepo *job.Repository) http.Ha
 				fmt.Printf("found %d/%d jobs for weekly newsletter\n", len(jobPosts), svr.GetConfig().NewsletterJobsToSend)
 				subscribers, err := database.GetEmailSubscribers(svr.Conn)
 				if err != nil {
-					svr.Log(err, fmt.Sprintf("unable to retrieve subscribers"))
+					svr.Log(err, "unable to retrieve subscribers")
 					return
 				}
 				var jobsHTMLArr []string
@@ -1646,30 +1646,15 @@ func PostAJobPageHandler(svr server.Server, companyRepo *company.Repository, job
 func ShowPaymentPage(svr server.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		email := r.URL.Query().Get("email")
-		currency := r.URL.Query().Get("currency")
-		amount, err := strconv.Atoi(r.URL.Query().Get("amount"))
-		if err != nil {
-			svr.JSON(w, http.StatusBadRequest, "invalid amount")
-			return
-		}
-		if amount < 900 || amount > 19900 {
-			svr.JSON(w, http.StatusBadRequest, "invalid amount")
-			return
-		}
-		if currency != "EUR" && currency != "GBP" && currency != "USD" {
-			svr.JSON(w, http.StatusBadRequest, "invalid currency")
-			return
-		}
 		if email == "" {
 			svr.JSON(w, http.StatusBadRequest, "invalid email")
 		}
-		curSymb := map[string]string{"USD": "$", "GBP": "£", "EUR": "€"}
 		svr.Render(r, w, http.StatusOK, "payment.html", map[string]interface{}{
-			"CurrencySymbol":       curSymb[currency],
+			"CurrencySymbol":       "$",
 			"StripePublishableKey": svr.GetConfig().StripePublishableKey,
 			"Email":                email,
-			"Amount":               amount / 100,
-			"AmountPence":          amount,
+			"Amount":               299,
+			"AmountPence":          29900,
 		})
 	}
 }
@@ -1879,7 +1864,7 @@ func PostAJobForLocationFromURLPageHandler(svr server.Server, companyRepo *compa
 		vars := mux.Vars(r)
 		location := vars["location"]
 		location = strings.ReplaceAll(location, "-", " ")
-		reg, err := regexp.Compile("[^a-zA-Z0-9\\s]+")
+		reg, err := regexp.Compile(`[^a-zA-Z0-9\\s]+`)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -2129,17 +2114,9 @@ func StripePaymentConfirmationWebookHandler(svr server.Server, jobRepo *job.Repo
 				return
 			}
 
-			expiration, err := jobRepo.PlanTypeAndDurationToExpirations(
-				purchaseEvent.PlanType,
-				purchaseEvent.PlanDuration,
-			)
-			if err != nil {
-				svr.Log(errors.New("unable to get expiration for plan type and duration"), fmt.Sprintf("unable to get expiration for plan type %s and duration %d for session id %s", purchaseEvent.PlanType, purchaseEvent.PlanDuration, sess.ID))
-				svr.JSON(w, http.StatusBadRequest, nil)
-				return
-			}
-			if err := jobRepo.UpdateJobPlan(jobPost.ID, purchaseEvent.PlanType, purchaseEvent.PlanDuration, expiration); err != nil {
-				svr.Log(errors.New("unable to update job to new ad type"), fmt.Sprintf("unable to update job id %d to new ad type %s and duration %d for session id %s", jobPost.ID, purchaseEvent.PlanType, purchaseEvent.PlanDuration, sess.ID))
+			expiration := jobRepo.PlanTypeAndDurationToExpirations()
+			if err := jobRepo.UpdateJobPlan(jobPost.ID, expiration); err != nil {
+				svr.Log(errors.New("unable to update job to new ad type"), fmt.Sprintf("unable to update job id %d for session id %s", jobPost.ID, sess.ID))
 				svr.JSON(w, http.StatusBadRequest, nil)
 				return
 			}
@@ -2343,7 +2320,7 @@ func ApplyForJobPageHandler(svr server.Server, jobRepo *job.Repository) http.Han
 		emailAddr := r.FormValue("email")
 		jobPost, err := jobRepo.JobPostByExternalIDForEdit(externalID)
 		if err != nil {
-			svr.Log(err, fmt.Sprintf("unable to retrieve job by externalId %d, %v", externalID, err))
+			svr.Log(err, fmt.Sprintf("unable to retrieve job by externalId %s, %v", externalID, err))
 			svr.JSON(w, http.StatusBadRequest, nil)
 			return
 		}
@@ -2574,8 +2551,6 @@ func SubmitJobPostWithoutPaymentHandler(svr server.Server, jobRepo *job.Reposito
 				svr.JSON(w, http.StatusBadRequest, nil)
 				return
 			}
-			jobRq.PlanType = job.JobPlanTypeBasic
-			jobRq.PlanDuration = 1
 			jobID, err := jobRepo.SaveDraft(jobRq)
 			if err != nil {
 				svr.Log(err, fmt.Sprintf("unable to save job request: %#v", jobRq))
@@ -2633,28 +2608,10 @@ func SubmitJobPostPaymentUpsellPageHandler(svr server.Server, jobRepo *job.Repos
 			svr.JSON(w, http.StatusBadRequest, nil)
 			return
 		}
-		monthlyAmount := 59
-		switch jobRq.PlanType {
-		case job.JobPlanTypeBasic:
-			monthlyAmount = svr.GetConfig().PlanID1Price
-		case job.JobPlanTypePro:
-			monthlyAmount = svr.GetConfig().PlanID2Price
-		case job.JobPlanTypePlatinum:
-			monthlyAmount = svr.GetConfig().PlanID3Price
-		}
-		sess, err := paymentRepo.CreateSession(
-			&job.JobRq{
-				PlanType:     jobRq.PlanType,
-				PlanDuration: jobRq.PlanDuration,
-				CurrencyCode: "USD",
-				Email:        jobRq.Email,
-			},
-			jobRq.Token,
-			int64(monthlyAmount),
-			int64(jobRq.PlanDuration),
-		)
+		planId := svr.GetConfig().PlanPriceID
+		sess, err := paymentRepo.CreateSession(planId)
 		if err != nil {
-			svr.Log(err, "unable to create payment session")
+			svr.Log(err, "unable to create subscription")
 		}
 
 		err = svr.GetEmail().SendHTMLEmail(
@@ -2672,67 +2629,19 @@ func SubmitJobPostPaymentUpsellPageHandler(svr server.Server, jobRepo *job.Repos
 		if err != nil {
 			svr.Log(err, "unable to send email to admin while upgrading job ad")
 		}
-		if sess == nil {
-			svr.JSON(w, http.StatusInternalServerError, nil)
-			return
-		}
 		err = database.InitiatePaymentEvent(
 			svr.Conn,
 			sess.ID,
-			payment.PlanTypeAndDurationToAmount(
-				jobRq.PlanType,
-				int64(jobRq.PlanDuration),
-				int64(svr.GetConfig().PlanID1Price),
-				int64(svr.GetConfig().PlanID1Price),
-				int64(svr.GetConfig().PlanID1Price),
-			),
-			"USD",
-			payment.PlanTypeAndDurationToDescription(
-				jobRq.PlanType,
-				int64(jobRq.PlanDuration),
-			),
+			planId,
 			jobRq.Email,
 			jobID,
-			jobRq.PlanType,
-			int64(jobRq.PlanDuration),
 		)
+
 		if err != nil {
 			svr.Log(err, "unable to save payment initiated event")
 		}
 		svr.JSON(w, http.StatusOK, map[string]string{"s_id": sess.ID})
 
-	}
-}
-
-func GeneratePaymentIntent(svr server.Server, paymentRepo *payment.Repository) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		dec := json.NewDecoder(r.Body)
-		req := struct {
-			Email    string
-			Currency string
-			Amount   int
-		}{}
-		if err := dec.Decode(&req); err != nil {
-			svr.JSON(w, http.StatusBadRequest, nil)
-			fmt.Println("invalid req")
-			return
-		}
-		if req.Currency != "USD" && req.Currency != "EUR" && req.Currency != "GBP" {
-			fmt.Println("invalid cur")
-			svr.JSON(w, http.StatusBadRequest, nil)
-			return
-		}
-		sess, err := paymentRepo.CreateGenericSession(req.Email, req.Currency, req.Amount)
-		if err != nil {
-			fmt.Println("invalid sess")
-			svr.Log(err, "unable to create payment session")
-		}
-		if sess != nil {
-			fmt.Println("invalid req")
-			svr.JSON(w, http.StatusOK, map[string]string{"s_id": sess.ID})
-			return
-		}
-		svr.JSON(w, http.StatusOK, nil)
 	}
 }
 
@@ -2742,24 +2651,6 @@ func SubmitJobPostPageHandler(svr server.Server, jobRepo *job.Repository, paymen
 		jobRq := &job.JobRq{}
 		if err := decoder.Decode(&jobRq); err != nil {
 			svr.JSON(w, http.StatusBadRequest, nil)
-			return
-		}
-		planDurationInt, err := strconv.Atoi(jobRq.PlanDurationStr)
-		if err != nil {
-			svr.Log(fmt.Errorf("invalid plan duration: unable to save job request: %#v", jobRq), "unable to save job request")
-			svr.JSON(w, http.StatusBadRequest, "invalid plan duration")
-			return
-		}
-		jobRq.PlanDuration = planDurationInt
-		jobRq.CurrencyCode = "USD"
-		if jobRq.PlanType != job.JobPlanTypeBasic && jobRq.PlanType != job.JobPlanTypePro && jobRq.PlanType != job.JobPlanTypePlatinum {
-			svr.Log(fmt.Errorf("invalid plan type: unable to save job request: %#v", jobRq), "unable to save job request")
-			svr.JSON(w, http.StatusBadRequest, "invalid plan type")
-			return
-		}
-		if jobRq.PlanDuration > 6 || jobRq.PlanDuration < 1 {
-			svr.Log(fmt.Errorf("invalid plan duration: unable to save job request: %#v", jobRq), "unable to save job request")
-			svr.JSON(w, http.StatusBadRequest, "invalid plan duration")
 			return
 		}
 		jobID, err := jobRepo.SaveDraft(jobRq)
@@ -2797,16 +2688,8 @@ func SubmitJobPostPageHandler(svr server.Server, jobRepo *job.Repository, paymen
 			svr.JSON(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		monthlyAmount := 59
-		switch jobRq.PlanType {
-		case job.JobPlanTypeBasic:
-			monthlyAmount = svr.GetConfig().PlanID1Price
-		case job.JobPlanTypePro:
-			monthlyAmount = svr.GetConfig().PlanID2Price
-		case job.JobPlanTypePlatinum:
-			monthlyAmount = svr.GetConfig().PlanID3Price
-		}
-		sess, err := paymentRepo.CreateSession(jobRq, randomTokenStr, int64(monthlyAmount), int64(jobRq.PlanDuration))
+		planPriceID := svr.GetConfig().PlanPriceID
+		sess, err := paymentRepo.CreateSession(planPriceID)
 		if err != nil {
 			svr.Log(err, "unable to create payment session")
 		}
@@ -2825,26 +2708,13 @@ func SubmitJobPostPageHandler(svr server.Server, jobRepo *job.Repository, paymen
 		if err != nil {
 			svr.Log(err, "unable to send email to admin while posting job ad")
 		}
-		if sess != nil {
+		if sess.ID != "" {
 			err = database.InitiatePaymentEvent(
 				svr.Conn,
 				sess.ID,
-				payment.PlanTypeAndDurationToAmount(
-					jobRq.PlanType,
-					int64(jobRq.PlanDuration),
-					int64(svr.GetConfig().PlanID1Price),
-					int64(svr.GetConfig().PlanID2Price),
-					int64(svr.GetConfig().PlanID3Price),
-				),
-				jobRq.CurrencyCode,
-				payment.PlanTypeAndDurationToDescription(
-					jobRq.PlanType,
-					int64(jobRq.PlanDuration),
-				),
+				planPriceID,
 				jobRq.Email,
 				jobID,
-				jobRq.PlanType,
-				int64(jobRq.PlanDuration),
 			)
 			if err != nil {
 				svr.Log(err, "unable to save payment initiated event")
@@ -2853,7 +2723,6 @@ func SubmitJobPostPageHandler(svr server.Server, jobRepo *job.Repository, paymen
 			return
 		}
 		svr.JSON(w, http.StatusOK, nil)
-		return
 	}
 }
 
@@ -3034,7 +2903,7 @@ func UpdateMediaPageHandler(svr server.Server) http.HandlerFunc {
 			svr.Log(errors.New("content type not supported for encoding"), fmt.Sprintf("content type %s not supported for encoding", contentType))
 			svr.JSON(w, http.StatusInternalServerError, nil)
 		}
-		err = database.UpdateMedia(svr.Conn, database.Media{cutImageBytes.Bytes(), contentType}, mediaID)
+		err = database.UpdateMedia(svr.Conn, database.Media{Bytes: cutImageBytes.Bytes(), MediaType: contentType}, mediaID)
 		if err != nil {
 			svr.Log(err, "unable to update media image to db")
 			svr.JSON(w, http.StatusInternalServerError, nil)
@@ -3133,7 +3002,7 @@ func SaveMediaPageHandler(svr server.Server) http.HandlerFunc {
 			svr.Log(errors.New("content type not supported for encoding"), fmt.Sprintf("content type %s not supported for encoding", contentType))
 			svr.JSON(w, http.StatusInternalServerError, nil)
 		}
-		id, err := database.SaveMedia(svr.Conn, database.Media{cutImageBytes.Bytes(), contentType})
+		id, err := database.SaveMedia(svr.Conn, database.Media{Bytes: cutImageBytes.Bytes(), MediaType: contentType})
 		if err != nil {
 			svr.Log(err, "unable to save media image to db")
 			svr.JSON(w, http.StatusInternalServerError, nil)

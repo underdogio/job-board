@@ -2,7 +2,6 @@ package job
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -64,55 +63,55 @@ func (r *Repository) SaveDraft(job *JobRq) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	expiration, err := r.PlanTypeAndDurationToExpirations(job.PlanType, job.PlanDuration)
-	if err != nil {
-		return 0, err
-	}
+	expiration := r.PlanTypeAndDurationToExpirations()
 	sqlStatement := `
-			INSERT INTO job (job_title, company, company_url, salary_range, salary_min, salary_max, salary_currency, location, description, perks, interview_process, how_to_apply, created_at, url_id, slug, company_email, company_icon_image_id, external_id, salary_period, salary_currency_iso, visa_sponsorship, plan_type, plan_duration, blog_eligibility_expired_at, company_page_eligibility_expired_at, front_page_eligibility_expired_at, newsletter_eligibility_expired_at, plan_expired_at, social_media_eligibility_expired_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, 'year', $19, $20, $21, $22, $23, $24, $25, $26, $27, $28) RETURNING id`
+			INSERT INTO job (
+				job_title,
+				job_category,
+				company,
+				location,
+				salary_range,
+				job_type,
+				application_link,
+				description,
+				created_at,
+				url_id,
+				slug,
+				company_icon_image_id,
+				external_id,
+				blog_eligibility_expired_at,
+				company_page_eligibility_expired_at,
+				front_page_eligibility_expired_at,
+				newsletter_eligibility_expired_at,
+				plan_expired_at,
+				social_media_eligibility_expired_at
+			)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) RETURNING id`
 	slugTitle := slug.Make(fmt.Sprintf("%s %s %d", job.JobTitle, job.Company, time.Now().UTC().Unix()))
 	createdAt := time.Now().UTC().Unix()
-	salaryMinInt, err := strconv.Atoi(strings.TrimSpace(job.SalaryMin))
-	if err != nil {
-		return 0, err
-	}
-	salaryMaxInt, err := strconv.Atoi(strings.TrimSpace(job.SalaryMax))
-	if err != nil {
-		return 0, err
-	}
-	salaryRange := salaryToSalaryRangeString(salaryMinInt, salaryMaxInt, job.SalaryCurrency)
+
 	var lastInsertID int
 	res := r.db.QueryRow(
 		sqlStatement,
-		job.JobTitle,
-		job.Company,
-		job.CompanyURL,
-		salaryRange,
-		job.SalaryMin,
-		job.SalaryMax,
-		job.SalaryCurrency,
-		job.Location,
-		job.Description,
-		job.Perks,
-		job.InterviewProcess,
-		job.HowToApply,
-		time.Unix(createdAt, 0),
-		createdAt,
-		slugTitle,
-		job.Email,
-		job.CompanyIconID,
-		externalID,
-		job.SalaryCurrencyISO,
-		job.VisaSponsorship,
-		job.PlanType,
-		job.PlanDuration,
-		expiration.BlogEligibilityExpiredAt,
-		expiration.CompanyPageEligibilityExpiredAt,
-		expiration.FrontPageEligibilityExpiredAt,
-		expiration.NewsletterEligibilityExpiredAt,
-		expiration.PlanExpiredAt,
-		expiration.SocialMediaEligibilityExpiredAt,
+		job.JobTitle,                        // job_title
+		job.JobCategory,                     // job_category
+		job.Company,                         // company
+		job.Location,                        // location
+		job.SalaryRange,                     // salary_range
+		job.JobType,                         // job_type
+		job.ApplicationLink,                 // application_link
+		job.Description,                     // description
+		time.Unix(createdAt, 0),             // created_at
+		createdAt,                           // url_id
+		slugTitle,                           // slug
+		job.CompanyIconID,                   // company_icon_image_id
+		externalID,                          // external_id
+		expiration.BlogEligibilityExpiredAt, // blog_eligibility_expired_at
+		expiration.CompanyPageEligibilityExpiredAt, // company_page_eligibility_expired_at
+		expiration.FrontPageEligibilityExpiredAt,   // front_page_eligibility_expired_at
+		expiration.NewsletterEligibilityExpiredAt,  // newsletter_eligibility_expired_at
+		expiration.PlanExpiredAt,                   // plan_expired_at
+		expiration.SocialMediaEligibilityExpiredAt, // social_media_eligibility_expired_at
 	)
 
 	if err := res.Scan(&lastInsertID); err != nil {
@@ -870,79 +869,32 @@ type JobExpirationEntity struct {
 	PlanExpiredAt                   time.Time
 }
 
-func (r *Repository) PlanTypeAndDurationToExpirations(planType string, planDuration int) (JobExpirationEntity, error) {
-	maps := map[string]JobExpirationEntity{
-		JobPlanTypeBasic: {
-			NewsletterEligibilityExpiredAt:  time.Now().AddDate(0, 0, 0),
-			BlogEligibilityExpiredAt:        time.Now().AddDate(0, 0, 0),
-			SocialMediaEligibilityExpiredAt: time.Now().AddDate(0, 0, 0),
-			FrontPageEligibilityExpiredAt:   time.Now().AddDate(0, 0, 0),
-			CompanyPageEligibilityExpiredAt: time.Now().AddDate(0, 0, 0),
-			PlanExpiredAt:                   time.Now().AddDate(0, 0, 30*planDuration),
-		},
-		JobPlanTypePro: {
-			NewsletterEligibilityExpiredAt:  time.Now().AddDate(0, 0, 30*planDuration),
-			BlogEligibilityExpiredAt:        time.Now().AddDate(0, 0, 0),
-			SocialMediaEligibilityExpiredAt: time.Now().AddDate(0, 0, 30*planDuration),
-			FrontPageEligibilityExpiredAt:   time.Now().AddDate(0, 0, 14*planDuration),
-			CompanyPageEligibilityExpiredAt: time.Now().AddDate(0, 0, 0),
-			PlanExpiredAt:                   time.Now().AddDate(0, 0, 30*planDuration),
-		},
-		JobPlanTypePlatinum: {
-			NewsletterEligibilityExpiredAt:  time.Now().AddDate(0, 0, 30*planDuration),
-			BlogEligibilityExpiredAt:        time.Now().AddDate(0, 0, 30*planDuration),
-			SocialMediaEligibilityExpiredAt: time.Now().AddDate(0, 0, 30*planDuration),
-			FrontPageEligibilityExpiredAt:   time.Now().AddDate(0, 0, 30*planDuration),
-			CompanyPageEligibilityExpiredAt: time.Now().AddDate(0, 0, 30*planDuration),
-			PlanExpiredAt:                   time.Now().AddDate(0, 0, 30*planDuration),
-		},
+func (r *Repository) PlanTypeAndDurationToExpirations() JobExpirationEntity {
+	expiration := time.Now().AddDate(0, 0, 365*10)
+	return JobExpirationEntity{
+		NewsletterEligibilityExpiredAt:  expiration,
+		BlogEligibilityExpiredAt:        expiration,
+		SocialMediaEligibilityExpiredAt: expiration,
+		FrontPageEligibilityExpiredAt:   expiration,
+		CompanyPageEligibilityExpiredAt: expiration,
+		PlanExpiredAt:                   expiration,
 	}
-	val, ok := maps[planType]
-	if !ok {
-		return JobExpirationEntity{}, errors.New("invalid plan type")
-	}
-	return val, nil
 }
 
 func (r *Repository) PlanTypeAndDurationToExpirationsFromExistingExpirations(expiration JobExpirationEntity, planType string, planDuration int) (JobExpirationEntity, error) {
-	maps := map[string]JobExpirationEntity{
-		JobPlanTypeBasic: {
-			NewsletterEligibilityExpiredAt:  expiration.NewsletterEligibilityExpiredAt.AddDate(0, 0, 0),
-			BlogEligibilityExpiredAt:        expiration.BlogEligibilityExpiredAt.AddDate(0, 0, 0),
-			SocialMediaEligibilityExpiredAt: expiration.SocialMediaEligibilityExpiredAt.AddDate(0, 0, 0),
-			FrontPageEligibilityExpiredAt:   expiration.FrontPageEligibilityExpiredAt.AddDate(0, 0, 0),
-			CompanyPageEligibilityExpiredAt: expiration.CompanyPageEligibilityExpiredAt.AddDate(0, 0, 0),
-			PlanExpiredAt:                   expiration.PlanExpiredAt.AddDate(0, 0, 30*planDuration),
-		},
-		JobPlanTypePro: {
-			NewsletterEligibilityExpiredAt:  expiration.NewsletterEligibilityExpiredAt.AddDate(0, 0, 30*planDuration),
-			BlogEligibilityExpiredAt:        expiration.BlogEligibilityExpiredAt.AddDate(0, 0, 0),
-			SocialMediaEligibilityExpiredAt: expiration.SocialMediaEligibilityExpiredAt.AddDate(0, 0, 30*planDuration),
-			FrontPageEligibilityExpiredAt:   expiration.FrontPageEligibilityExpiredAt.AddDate(0, 0, 14*planDuration),
-			CompanyPageEligibilityExpiredAt: expiration.CompanyPageEligibilityExpiredAt.AddDate(0, 0, 0),
-			PlanExpiredAt:                   expiration.PlanExpiredAt.AddDate(0, 0, 30*planDuration),
-		},
-		JobPlanTypePlatinum: {
-			NewsletterEligibilityExpiredAt:  expiration.NewsletterEligibilityExpiredAt.AddDate(0, 0, 30*planDuration),
-			BlogEligibilityExpiredAt:        expiration.BlogEligibilityExpiredAt.AddDate(0, 0, 30*planDuration),
-			SocialMediaEligibilityExpiredAt: expiration.SocialMediaEligibilityExpiredAt.AddDate(0, 0, 30*planDuration),
-			FrontPageEligibilityExpiredAt:   expiration.FrontPageEligibilityExpiredAt.AddDate(0, 0, 30*planDuration),
-			CompanyPageEligibilityExpiredAt: expiration.CompanyPageEligibilityExpiredAt.AddDate(0, 0, 30*planDuration),
-			PlanExpiredAt:                   expiration.PlanExpiredAt.AddDate(0, 0, 30*planDuration),
-		},
-	}
-	val, ok := maps[planType]
-	if !ok {
-		return JobExpirationEntity{}, errors.New("invalid plan type")
-	}
-	return val, nil
+	return JobExpirationEntity{
+		NewsletterEligibilityExpiredAt:  expiration.NewsletterEligibilityExpiredAt.AddDate(0, 0, 30*planDuration),
+		BlogEligibilityExpiredAt:        expiration.BlogEligibilityExpiredAt.AddDate(0, 0, 30*planDuration),
+		SocialMediaEligibilityExpiredAt: expiration.SocialMediaEligibilityExpiredAt.AddDate(0, 0, 30*planDuration),
+		FrontPageEligibilityExpiredAt:   expiration.FrontPageEligibilityExpiredAt.AddDate(0, 0, 30*planDuration),
+		CompanyPageEligibilityExpiredAt: expiration.CompanyPageEligibilityExpiredAt.AddDate(0, 0, 30*planDuration),
+		PlanExpiredAt:                   expiration.PlanExpiredAt.AddDate(0, 0, 30*planDuration),
+	}, nil
 }
 
-func (r *Repository) UpdateJobPlan(jobID int, planType string, planDuration int, expiration JobExpirationEntity) error {
+func (r *Repository) UpdateJobPlan(jobID int, expiration JobExpirationEntity) error {
 	_, err := r.db.Exec(
-		`UPDATE job SET plan_type = $1, plan_duration = $2, newsletter_eligibility_expired_at = $3, blog_eligibility_expired_at = $4, social_media_eligibility_expired_at = $5, front_page_eligibility_expired_at = $6, company_page_eligibility_expired_at = $7, plan_expired_at = $8, approved_at = NOW() WHERE id = $9`,
-		planType,
-		planDuration,
+		`UPDATE job SET newsletter_eligibility_expired_at = $1, blog_eligibility_expired_at = $2, social_media_eligibility_expired_at = $3, front_page_eligibility_expired_at = $4, company_page_eligibility_expired_at = $5, plan_expired_at = $6, approved_at = NOW() WHERE id = $7`,
 		expiration.NewsletterEligibilityExpiredAt,
 		expiration.BlogEligibilityExpiredAt,
 		expiration.SocialMediaEligibilityExpiredAt,

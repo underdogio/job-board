@@ -9,7 +9,7 @@ import (
 
 	customtemplate "github.com/alecthomas/template"
 	humanize "github.com/dustin/go-humanize"
-	blackfriday "gopkg.in/russross/blackfriday.v2"
+	blackfriday "github.com/russross/blackfriday/v2"
 )
 
 type Template struct {
