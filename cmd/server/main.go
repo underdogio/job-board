@@ -11,7 +11,6 @@ import (
 	"github.com/golang-cafe/job-board/internal/blog"
 	"github.com/golang-cafe/job-board/internal/company"
 	"github.com/golang-cafe/job-board/internal/config"
-	"github.com/golang-cafe/job-board/internal/database"
 	"github.com/golang-cafe/job-board/internal/developer"
 	"github.com/golang-cafe/job-board/internal/email"
 	"github.com/golang-cafe/job-board/internal/handler"
@@ -30,7 +29,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("unable to load config: %+v", err)
 	}
-	conn, err := database.GetDbConn(cfg.DatabaseURL)
+	conn, err := server.GetDbConn(cfg.DatabaseURL)
+	defer server.CloseDbConn(conn)
 	if err != nil {
 		log.Fatalf("unable to connect to postgres: %v", err)
 	}
@@ -166,7 +166,7 @@ func main() {
 	svr.RegisterRoute("/x/task/ads-manager", handler.TriggerAdsManager(svr, jobRepo), []string{"POST"})
 	svr.RegisterRoute("/x/task/twitter-scheduler", handler.TriggerTwitterScheduler(svr, jobRepo), []string{"POST"})
 	svr.RegisterRoute("/x/task/telegram-scheduler", handler.TriggerTelegramScheduler(svr, jobRepo), []string{"POST"})
-	svr.RegisterRoute("/x/task/company-update", handler.TriggerCompanyUpdate(svr, companyRepo), []string{"POST"})
+	// svr.RegisterRoute("/x/task/company-update", handler.TriggerCompanyUpdate(svr, companyRepo), []string{"POST"})
 	svr.RegisterRoute("/x/task/sitemap-update", handler.TriggerSitemapUpdate(svr, devRepo, jobRepo, blogRepo, companyRepo), []string{"POST"})
 	svr.RegisterRoute("/x/task/cloudflare-stats-export", handler.TriggerCloudflareStatsExport(svr), []string{"POST"})
 	svr.RegisterRoute("/x/task/expired-jobs", handler.TriggerExpiredJobsTask(svr, jobRepo), []string{"POST"})

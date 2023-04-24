@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"github.com/ChimeraCoder/anaconda"
-	"github.com/PuerkitoBio/goquery"
 	"github.com/bot-api/telegram"
 	jwt "github.com/dgrijalva/jwt-go"
 	humanize "github.com/dustin/go-humanize"
@@ -44,6 +43,8 @@ import (
 	"github.com/nfnt/resize"
 	"github.com/segmentio/ksuid"
 	"github.com/snabb/sitemap"
+	"github.com/volatiletech/sqlboiler/v4/boil"
+	"github.com/volatiletech/sqlboiler/v4/queries"
 )
 
 const (
@@ -309,7 +310,12 @@ func SaveDeveloperProfileHandler(svr server.Server, devRepo devGetSaver, userRep
 			svr.JSON(w, http.StatusInternalServerError, nil)
 			return
 		}
-		err = database.AddEmailSubscriber(svr.Conn, req.Email, k.String())
+
+		emailSubscriber := database.EmailSubscriber{
+			Email: req.Email,
+			Token: k.String(),
+		}
+		err = emailSubscriber.InsertG(r.Context(), boil.Infer())
 		if err != nil {
 			svr.Log(err, "unable to add email subscriber to db")
 			svr.JSON(w, http.StatusInternalServerError, nil)
@@ -381,7 +387,7 @@ func TriggerFXRateUpdate(svr server.Server) http.HandlerFunc {
 							Target:    target,
 							Value:     cur.Value,
 						}
-						if err := database.AddFXRate(svr.Conn, fx); err != nil {
+						if err := fx.InsertG(r.Context(), boil.Infer()); err != nil {
 							svr.Log(err, "database.AddFxRate")
 							continue
 						}
@@ -397,27 +403,31 @@ func TriggerSitemapUpdate(svr server.Server, devRepo *developer.Repository, jobR
 		svr.GetConfig().MachineToken,
 		func(w http.ResponseWriter, r *http.Request) {
 			go func() {
-				fmt.Println("generating sitemap")
-				database.SaveSEOSkillFromCompany(svr.Conn)
-				landingPages, err := seo.GenerateSearchSEOLandingPages(svr.Conn, svr.GetConfig().SiteJobCategory)
+				tx, err := svr.Conn.BeginTx(r.Context(), nil)
+				if err != nil {
+					svr.Log(err, "svr.Conn.BeginTx")
+					return
+				}
+				queries.Raw(`INSERT INTO seo_skill select distinct company from job on conflict do nothing`).ExecContext(r.Context(), tx)
+				landingPages, err := seo.GenerateSearchSEOLandingPages(tx, svr.GetConfig().SiteJobCategory)
 				if err != nil {
 					svr.Log(err, "seo.GenerateSearchSEOLandingPages")
 					return
 				}
 				fmt.Println("generating post a job landing page")
-				postAJobLandingPages, err := seo.GeneratePostAJobSEOLandingPages(svr.Conn, svr.GetConfig().SiteJobCategory)
+				postAJobLandingPages, err := seo.GeneratePostAJobSEOLandingPages(tx, svr.GetConfig().SiteJobCategory)
 				if err != nil {
 					svr.Log(err, "seo.GeneratePostAJobSEOLandingPages")
 					return
 				}
 				fmt.Println("generating salary landing page")
-				salaryLandingPages, err := seo.GenerateSalarySEOLandingPages(svr.Conn, svr.GetConfig().SiteJobCategory)
+				salaryLandingPages, err := seo.GenerateSalarySEOLandingPages(tx, svr.GetConfig().SiteJobCategory)
 				if err != nil {
 					svr.Log(err, "seo.GenerateSalarySEOLandingPages")
 					return
 				}
 				fmt.Println("generating companies landing page")
-				companyLandingPages, err := seo.GenerateCompaniesLandingPages(svr.Conn, svr.GetConfig().SiteJobCategory)
+				companyLandingPages, err := seo.GenerateCompaniesLandingPages(tx, svr.GetConfig().SiteJobCategory)
 				if err != nil {
 					svr.Log(err, "seo.GenerateCompaniesLandingPages")
 					return
@@ -995,6 +1005,7 @@ func TriggerTwitterScheduler(svr server.Server, jobRepo *job.Repository) http.Ha
 	)
 }
 
+/*
 func TriggerCompanyUpdate(svr server.Server, companyRepo *company.Repository) http.HandlerFunc {
 	return middleware.MachineAuthenticatedMiddleware(
 		svr.GetConfig().MachineToken,
@@ -1114,6 +1125,7 @@ func TriggerCompanyUpdate(svr server.Server, companyRepo *company.Repository) ht
 		},
 	)
 }
+*/
 
 func TriggerAdsManager(svr server.Server, jobRepo *job.Repository) http.HandlerFunc {
 	return middleware.MachineAuthenticatedMiddleware(
@@ -1888,40 +1900,29 @@ func JobBySlugPageHandler(svr server.Server, jobRepo *job.Repository) http.Handl
 		}
 		jobLocations := strings.Split(jobPost.Location, "/")
 		var isQuickApply bool
-		if svr.IsEmail(jobPost.HowToApply) {
-			isQuickApply = true
-		}
-		jobPost.SalaryRange = fmt.Sprintf("%s%s to %s%s", jobPost.SalaryCurrency, humanize.Comma(jobPost.SalaryMin), jobPost.SalaryCurrency, humanize.Comma(jobPost.SalaryMax))
+		jobPost.SalaryRange = jobPost.SalaryRange
 
 		relevantJobs, err := jobRepo.GetRelevantJobs(jobPost.Location, jobPost.ID, 3)
 		if err != nil {
 			svr.Log(err, "unable to get relevant jobs")
 		}
 		for i, j := range relevantJobs {
-			relevantJobs[i].CompanyURLEnc = url.PathEscape(j.Company)
 			relevantJobs[i].JobDescription = string(svr.MarkdownToHTML(j.JobDescription))
-			relevantJobs[i].Perks = string(svr.MarkdownToHTML(j.Perks))
-			relevantJobs[i].SalaryRange = fmt.Sprintf("%s%s to %s%s", j.SalaryCurrency, humanize.Comma(j.SalaryMin), j.SalaryCurrency, humanize.Comma(j.SalaryMax))
-			relevantJobs[i].InterviewProcess = string(svr.MarkdownToHTML(j.InterviewProcess))
-			if svr.IsEmail(j.HowToApply) {
-				relevantJobs[i].IsQuickApply = true
-			}
+			relevantJobs[i].SalaryRange = j.SalaryRange
 		}
 		svr.Render(r, w, http.StatusOK, "job.html", map[string]interface{}{
-			"Job":                     jobPost,
-			"JobURIEncoded":           url.QueryEscape(jobPost.Slug),
-			"IsQuickApply":            isQuickApply,
-			"HTMLJobDescription":      svr.MarkdownToHTML(jobPost.JobDescription),
-			"HTMLJobPerks":            svr.MarkdownToHTML(jobPost.Perks),
-			"HTMLJobInterviewProcess": svr.MarkdownToHTML(jobPost.InterviewProcess),
-			"LocationFilter":          location,
-			"ExternalJobId":           jobPost.ExternalID,
-			"MonthAndYear":            time.Unix(jobPost.CreatedAt, 0).UTC().Format("January 2006"),
-			"GoogleJobCreatedAt":      time.Unix(jobPost.CreatedAt, 0).Format(time.RFC3339),
-			"GoogleJobValidThrough":   time.Unix(jobPost.CreatedAt, 0).AddDate(0, 5, 0),
-			"GoogleJobLocation":       jobLocations[0],
-			"GoogleJobDescription":    strconv.Quote(strings.ReplaceAll(string(svr.MarkdownToHTML(jobPost.JobDescription)), "\n", "")),
-			"RelevantJobs":            relevantJobs,
+			"Job":                   jobPost,
+			"JobURIEncoded":         url.QueryEscape(jobPost.Slug),
+			"IsQuickApply":          isQuickApply,
+			"HTMLJobDescription":    svr.MarkdownToHTML(jobPost.JobDescription),
+			"LocationFilter":        location,
+			"ExternalJobId":         jobPost.ExternalID,
+			"MonthAndYear":          time.Unix(jobPost.CreatedAt, 0).UTC().Format("January 2006"),
+			"GoogleJobCreatedAt":    time.Unix(jobPost.CreatedAt, 0).Format(time.RFC3339),
+			"GoogleJobValidThrough": time.Unix(jobPost.CreatedAt, 0).AddDate(0, 5, 0),
+			"GoogleJobLocation":     jobLocations[0],
+			"GoogleJobDescription":  strconv.Quote(strings.ReplaceAll(string(svr.MarkdownToHTML(jobPost.JobDescription)), "\n", "")),
+			"RelevantJobs":          relevantJobs,
 		})
 	}
 }
@@ -1943,15 +1944,8 @@ func CompanyBySlugPageHandler(svr server.Server, companyRepo *company.Repository
 			svr.Log(err, "unable to get company jobs")
 		}
 		for i, j := range companyJobs {
-			companyJobs[i].CompanyURLEnc = url.PathEscape(j.Company)
 			companyJobs[i].JobDescription = string(svr.MarkdownToHTML(j.JobDescription))
-			companyJobs[i].Perks = string(svr.MarkdownToHTML(j.Perks))
-			companyJobs[i].SalaryRange = fmt.Sprintf("%s%s to %s%s", j.SalaryCurrency, humanize.Comma(j.SalaryMin), j.SalaryCurrency, humanize.Comma(j.SalaryMax))
-			companyJobs[i].SalaryPeriod = j.SalaryPeriod
-			companyJobs[i].InterviewProcess = string(svr.MarkdownToHTML(j.InterviewProcess))
-			if svr.IsEmail(j.HowToApply) {
-				companyJobs[i].IsQuickApply = true
-			}
+			companyJobs[i].SalaryRange = j.SalaryRange
 		}
 		if err := svr.Render(r, w, http.StatusOK, "company.html", map[string]interface{}{
 			"Company":      company,

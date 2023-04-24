@@ -11,7 +11,6 @@ const (
 type Company struct {
 	ID                              string
 	Name                            string
-	URL                             string
 	Locations                       string
 	IconImageID                     string
 	Description                     *string

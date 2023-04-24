@@ -97,29 +97,19 @@ type JobPost struct {
 	CreatedAt                       int64
 	TimeAgo                         string
 	JobTitle                        string
+	JobCategory                     string
 	Company                         string
-	CompanyURL                      string
-	SalaryRange                     string
 	Location                        string
+	SalaryRange                     string
+	JobType                         string
+	ApplicationLink                 string
 	JobDescription                  string
-	Perks                           string
-	InterviewProcess                string
-	HowToApply                      string
 	Slug                            string
-	SalaryCurrency                  string
-	SalaryMin                       int64
-	SalaryMax                       int64
 	CompanyIconID                   string
 	ExternalID                      string
-	IsQuickApply                    bool
 	ApprovedAt                      *time.Time
-	CompanyEmail                    string
-	SalaryPeriod                    string
-	CompanyURLEnc                   string
 	Expired                         bool
 	LastWeekClickouts               int
-	PlanType                        string
-	PlanDuration                    int
 	NewsletterEligibilityExpiredAt  time.Time
 	BlogEligibilityExpiredAt        time.Time
 	SocialMediaEligibilityExpiredAt time.Time

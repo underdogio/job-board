@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/gob"
@@ -31,6 +32,7 @@ import (
 	"github.com/golang-cafe/job-board/internal/template"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
+	"github.com/volatiletech/sqlboiler/v4/boil"
 
 	"github.com/allegro/bigcache/v3"
 )
@@ -61,6 +63,7 @@ func NewServer(
 	sessionStore *sessions.CookieStore,
 ) Server {
 	bigCache, err := bigcache.NewBigCache(bigcache.DefaultConfig(12 * time.Hour))
+	boil.SetDB(conn)
 	svr := Server{
 		cfg:          cfg,
 		Conn:         conn,
@@ -102,8 +105,8 @@ func (s Server) GetConfig() config.Config {
 	return s.cfg
 }
 
-func (s Server) RenderSalaryForLocation(w http.ResponseWriter, r *http.Request, jobRepo *job.Repository, devRepo *developer.Repository, location string) {
-	loc, err := database.GetLocation(s.Conn, location)
+func (s Server) RenderSalaryForLocation(ctx context.Context, w http.ResponseWriter, r *http.Request, jobRepo *job.Repository, devRepo *developer.Repository, location string) {
+	loc, err := database.FindSeoLocationG(ctx, location)
 	complimentaryRemote := false
 	if err != nil {
 		complimentaryRemote = true
@@ -172,14 +175,14 @@ func (s Server) RenderSalaryForLocation(w http.ResponseWriter, r *http.Request, 
 			}
 		}()
 	}
-	jobPosts, err := jobRepo.TopNJobsByCurrencyAndLocation(loc.Currency, loc.Name, 3)
+	jobPosts, err := jobRepo.TopNJobsByLocation(loc.Name, 3)
 	if err != nil {
-		s.Log(err, "jobRepo.TopNJobsByCurrencyAndLocation")
+		s.Log(err, "jobRepo.TopNJobsByLocation")
 	}
 	if len(jobPosts) == 0 {
-		jobPosts, err = jobRepo.TopNJobsByCurrencyAndLocation("$", "Remote", 3)
+		jobPosts, err = jobRepo.TopNJobsByLocation("Remote", 3)
 		if err != nil {
-			s.Log(err, "jobRepo.TopNJobsByCurrencyAndLocation")
+			s.Log(err, "jobRepo.TopNJobsByLocation")
 		}
 	}
 	lastJobPosted, err := jobRepo.LastJobPosted()
@@ -350,14 +353,8 @@ func (s Server) RenderPageForLocationAndTag(w http.ResponseWriter, r *http.Reque
 				s.Log(err, "unable to get pinned jobs")
 			}
 			for i, j := range pinnedJobs {
-				pinnedJobs[i].CompanyURLEnc = url.PathEscape(j.Company)
 				pinnedJobs[i].JobDescription = string(s.tmpl.MarkdownToHTML(j.JobDescription))
-				pinnedJobs[i].Perks = string(s.tmpl.MarkdownToHTML(j.Perks))
-				pinnedJobs[i].SalaryRange = fmt.Sprintf("%s%s to %s%s", j.SalaryCurrency, humanize.Comma(j.SalaryMin), j.SalaryCurrency, humanize.Comma(j.SalaryMax))
-				pinnedJobs[i].InterviewProcess = string(s.tmpl.MarkdownToHTML(j.InterviewProcess))
-				if s.IsEmail(j.HowToApply) {
-					pinnedJobs[i].IsQuickApply = true
-				}
+				pinnedJobs[i].SalaryRange = j.SalaryRange
 			}
 			buf := &bytes.Buffer{}
 			enc := gob.NewEncoder(buf)
@@ -418,20 +415,8 @@ func (s Server) RenderPageForLocationAndTag(w http.ResponseWriter, r *http.Reque
 	var minSalary int64 = 1<<63 - 1
 	var maxSalary int64 = 0
 	for i, j := range jobsForPage {
-		jobsForPage[i].CompanyURLEnc = url.PathEscape(j.Company)
 		jobsForPage[i].JobDescription = string(s.tmpl.MarkdownToHTML(j.JobDescription))
-		jobsForPage[i].SalaryRange = fmt.Sprintf("%s%s to %s%s", j.SalaryCurrency, humanize.Comma(j.SalaryMin), j.SalaryCurrency, humanize.Comma(j.SalaryMax))
-		jobsForPage[i].Perks = string(s.tmpl.MarkdownToHTML(j.Perks))
-		jobsForPage[i].InterviewProcess = string(s.tmpl.MarkdownToHTML(j.InterviewProcess))
-		if s.IsEmail(j.HowToApply) {
-			jobsForPage[i].IsQuickApply = true
-		}
-		if j.SalaryPeriod == "year" && j.SalaryCurrency == locFromDB.Currency && minSalary > j.SalaryMin {
-			minSalary = j.SalaryMin
-		}
-		if j.SalaryPeriod == "year" && j.SalaryCurrency == locFromDB.Currency && maxSalary < j.SalaryMax {
-			maxSalary = j.SalaryMax
-		}
+		jobsForPage[i].SalaryRange = j.SalaryRange
 	}
 
 	ua := r.Header.Get("user-agent")
@@ -813,14 +798,14 @@ func (s Server) RenderPageForCompanies(w http.ResponseWriter, r *http.Request, c
 			}
 		}()
 	}
-	jobPosts, err := jobRepo.TopNJobsByCurrencyAndLocation(loc.Currency, loc.Name, 3)
+	jobPosts, err := jobRepo.TopNJobsByLocation(loc.Name, 3)
 	if err != nil {
-		s.Log(err, "database.TopNJobsByCurrencyAndLocation")
+		s.Log(err, "database.TopNJobsByLocation")
 	}
 	if len(jobPosts) == 0 {
-		jobPosts, err = jobRepo.TopNJobsByCurrencyAndLocation("$", "Remote", 3)
+		jobPosts, err = jobRepo.TopNJobsByLocation("Remote", 3)
 		if err != nil {
-			s.Log(err, "database.TopNJobsByCurrencyAndLocation")
+			s.Log(err, "database.TopNJobsByLocation")
 		}
 	}
 
@@ -930,7 +915,7 @@ func (s Server) RenderPageForLocationAndTagAdmin(r *http.Request, w http.Respons
 		s.Log(err, "unable to get pending jobs")
 	}
 	for i, j := range pendingJobs {
-		pendingJobs[i].SalaryRange = fmt.Sprintf("%s%s to %s%s", j.SalaryCurrency, humanize.Comma(j.SalaryMin), j.SalaryCurrency, humanize.Comma(j.SalaryMax))
+		pendingJobs[i].SalaryRange = j.SalaryRange
 	}
 	jobsForPage, totalJobCount, err := jobRepo.JobsByQuery(location, tag, pageID, salaryInt, currency, s.cfg.JobsPerPage, false)
 	if err != nil {
@@ -963,21 +948,11 @@ func (s Server) RenderPageForLocationAndTagAdmin(r *http.Request, w http.Respons
 	}
 	for i, j := range jobsForPage {
 		jobsForPage[i].JobDescription = string(s.tmpl.MarkdownToHTML(j.JobDescription))
-		jobsForPage[i].Perks = string(s.tmpl.MarkdownToHTML(j.Perks))
-		jobsForPage[i].SalaryRange = fmt.Sprintf("%s%s to %s%s", j.SalaryCurrency, humanize.Comma(j.SalaryMin), j.SalaryCurrency, humanize.Comma(j.SalaryMax))
-		jobsForPage[i].InterviewProcess = string(s.tmpl.MarkdownToHTML(j.InterviewProcess))
-		if s.IsEmail(j.HowToApply) {
-			jobsForPage[i].IsQuickApply = true
-		}
+		jobsForPage[i].SalaryRange = j.SalaryRange
 	}
 	for i, j := range pinnedJobs {
 		pinnedJobs[i].JobDescription = string(s.tmpl.MarkdownToHTML(j.JobDescription))
-		pinnedJobs[i].Perks = string(s.tmpl.MarkdownToHTML(j.Perks))
-		pinnedJobs[i].SalaryRange = fmt.Sprintf("%s%s to %s%s", j.SalaryCurrency, humanize.Comma(j.SalaryMin), j.SalaryCurrency, humanize.Comma(j.SalaryMax))
-		pinnedJobs[i].InterviewProcess = string(s.tmpl.MarkdownToHTML(j.InterviewProcess))
-		if s.IsEmail(j.HowToApply) {
-			pinnedJobs[i].IsQuickApply = true
-		}
+		pinnedJobs[i].SalaryRange = j.SalaryRange
 	}
 
 	s.Render(r, w, http.StatusOK, htmlView, map[string]interface{}{
@@ -1188,4 +1163,25 @@ func (s Server) SeenSince(r *http.Request, timeAgo time.Duration) bool {
 
 func (s Server) IsEmail(val string) bool {
 	return s.emailRe.MatchString(val)
+}
+
+// GetDbConn tries to establish a connection to postgres and return the connection handler
+func GetDbConn(databaseURL string) (*sql.DB, error) {
+	db, err := sql.Open("postgres", databaseURL)
+	if err != nil {
+		return nil, err
+	}
+	err = db.Ping()
+	if err != nil {
+		return nil, err
+	}
+	db.SetMaxOpenConns(20)
+	db.SetMaxIdleConns(20)
+	db.SetConnMaxLifetime(5 * time.Minute)
+	return db, nil
+}
+
+// CloseDbConn closes db conn
+func CloseDbConn(conn *sql.DB) {
+	conn.Close()
 }

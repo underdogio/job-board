@@ -261,27 +261,6 @@ func CountEmailSubscribers(conn *sql.DB) (int, error) {
 	return count, err
 }
 
-// GetDbConn tries to establish a connection to postgres and return the connection handler
-func GetDbConn(databaseURL string) (*sql.DB, error) {
-	db, err := sql.Open("postgres", databaseURL)
-	if err != nil {
-		return nil, err
-	}
-	err = db.Ping()
-	if err != nil {
-		return nil, err
-	}
-	db.SetMaxOpenConns(20)
-	db.SetMaxIdleConns(20)
-	db.SetConnMaxLifetime(5 * time.Minute)
-	return db, nil
-}
-
-// CloseDbConn closes db conn
-func CloseDbConn(conn *sql.DB) {
-	conn.Close()
-}
-
 func DuplicateImage(conn *sql.DB, oldID, newID string) error {
 	stmt := `INSERT INTO image (id, bytes, media_type) SELECT $1, bytes, media_type FROM image WHERE id = $2`
 	_, err := conn.Exec(stmt, newID, oldID)

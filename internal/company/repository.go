@@ -21,7 +21,6 @@ func NewRepository(db *sql.DB) *Repository {
 // smart group by to find typos
 func (r *Repository) InferCompaniesFromJobs(since time.Time) ([]Company, error) {
 	stmt := `SELECT   trim(from company), 
-         max(company_url)               AS company_url, 
          max(location)                  AS locations, 
          max(company_icon_image_id)     AS company_icon_id, 
          max(created_at)                AS last_job_created_at, 
@@ -46,7 +45,6 @@ ORDER BY trim(FROM company)`
 		var c Company
 		if err := rows.Scan(
 			&c.Name,
-			&c.URL,
 			&c.Locations,
 			&c.IconImageID,
 			&c.LastJobCreatedAt,
@@ -68,15 +66,14 @@ func (r *Repository) SaveCompany(c Company) error {
 	}
 	var err error
 	stmt := `INSERT INTO company (id, name, url, locations, icon_image_id, last_job_created_at, total_job_count, active_job_count, description, slug, twitter, linkedin, github, company_page_eligibility_expired_at)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) 
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
 	ON CONFLICT (name) 
-	DO UPDATE SET url = $3, locations = $4, icon_image_id = $5, last_job_created_at = $6, total_job_count = $7, active_job_count = $8, slug = $10, company_page_eligibility_expired_at = $14`
+	DO UPDATE SET locations = $3, icon_image_id = $4, last_job_created_at = $5, total_job_count = $6, active_job_count = $7, slug = $9, company_page_eligibility_expired_at = $13`
 
 	_, err = r.db.Exec(
 		stmt,
 		c.ID,
 		c.Name,
-		c.URL,
 		c.Locations,
 		c.IconImageID,
 		c.LastJobCreatedAt,
@@ -101,8 +98,8 @@ func (r *Repository) TrackCompanyView(company *Company) error {
 
 func (r *Repository) CompanyBySlug(slug string) (*Company, error) {
 	company := &Company{}
-	row := r.db.QueryRow(`SELECT id, name, url, locations, last_job_created_at, icon_image_id, total_job_count, active_job_count, description, featured_post_a_job, slug, github, linkedin, twitter FROM company WHERE slug = $1`, slug)
-	if err := row.Scan(&company.ID, &company.Name, &company.URL, &company.Locations, &company.LastJobCreatedAt, &company.IconImageID, &company.TotalJobCount, &company.ActiveJobCount, &company.Description, &company.Featured, &company.Slug, &company.Github, &company.Linkedin, &company.Twitter); err != nil {
+	row := r.db.QueryRow(`SELECT id, name, locations, last_job_created_at, icon_image_id, total_job_count, active_job_count, description, featured_post_a_job, slug, github, linkedin, twitter FROM company WHERE slug = $1`, slug)
+	if err := row.Scan(&company.ID, &company.Name, &company.Locations, &company.LastJobCreatedAt, &company.IconImageID, &company.TotalJobCount, &company.ActiveJobCount, &company.Description, &company.Featured, &company.Slug, &company.Github, &company.Linkedin, &company.Twitter); err != nil {
 		return company, err
 	}
 
@@ -126,7 +123,6 @@ func (r *Repository) CompaniesByQuery(location string, pageID, companiesPerPage 
 			&fullRowsCount,
 			&c.ID,
 			&c.Name,
-			&c.URL,
 			&c.Locations,
 			&c.IconImageID,
 			&c.LastJobCreatedAt,

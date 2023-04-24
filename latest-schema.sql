@@ -67,8 +67,8 @@ SET default_table_access_method = heap;
 --
 
 CREATE TABLE public.apply_token (
-    token character(27) NOT NULL,
-    job_id integer NOT NULL,
+    token character(27) NOT NULL PRIMARY KEY,
+    job_id character(27) NOT NULL,
     created_at timestamp without time zone NOT NULL,
     confirmed_at timestamp without time zone,
     email character varying(255) NOT NULL,
@@ -130,7 +130,7 @@ CREATE TABLE public.cloudflare_status_code_stats (
 --
 
 CREATE TABLE public.company (
-    id character(27) NOT NULL,
+    id character(27) NOT NULL PRIMARY KEY,
     name character varying(255) NOT NULL,
     url character varying(255) NOT NULL,
     locations character varying(255) NOT NULL,
@@ -143,7 +143,8 @@ CREATE TABLE public.company (
     slug character varying(255) DEFAULT NULL::character varying NOT NULL,
     twitter character varying(255) DEFAULT NULL::character varying,
     github character varying(255) DEFAULT NULL::character varying,
-    linkedin character varying(255) DEFAULT NULL::character varying
+    linkedin character varying(255) DEFAULT NULL::character varying,
+    company_page_eligibility_expired_at TIMESTAMP DEFAULT '1970-01-01 00:00:00'
 );
 
 
@@ -152,6 +153,7 @@ CREATE TABLE public.company (
 --
 
 CREATE TABLE public.company_event (
+    id character(27) NOT NULL PRIMARY KEY,
     event_type character varying(128) NOT NULL,
     company_id character(27) NOT NULL,
     created_at timestamp without time zone NOT NULL
@@ -163,11 +165,12 @@ CREATE TABLE public.company_event (
 --
 
 CREATE TABLE public.developer_profile (
-    id character(27) NOT NULL,
+    id character(27) NOT NULL PRIMARY KEY,
     email character varying(255) NOT NULL,
     location character varying(255) NOT NULL,
     available boolean NOT NULL,
     linkedin_url character varying(255) NOT NULL,
+    hourly_rate integer NOT NULL default 0,
     image_id character(27) NOT NULL,
     slug character varying(255) NOT NULL,
     created_at timestamp without time zone NOT NULL,
@@ -185,6 +188,7 @@ CREATE TABLE public.developer_profile (
 --
 
 CREATE TABLE public.developer_profile_event (
+    id character(27) NOT NULL PRIMARY KEY,
     event_type character varying(128) NOT NULL,
     developer_profile_id character(27) NOT NULL,
     created_at timestamp without time zone NOT NULL
@@ -196,7 +200,7 @@ CREATE TABLE public.developer_profile_event (
 --
 
 CREATE TABLE public.developer_profile_message (
-    id character(27) NOT NULL,
+    id character(27) NOT NULL PRIMARY KEY,
     email character varying(255) NOT NULL,
     content text NOT NULL,
     profile_id character(27) NOT NULL,
@@ -210,8 +214,8 @@ CREATE TABLE public.developer_profile_message (
 --
 
 CREATE TABLE public.edit_token (
-    token character(27) NOT NULL,
-    job_id integer NOT NULL,
+    token character(27) NOT NULL PRIMARY KEY,
+    job_id character(27) NOT NULL,
     created_at timestamp without time zone NOT NULL
 );
 
@@ -221,7 +225,7 @@ CREATE TABLE public.edit_token (
 --
 
 CREATE TABLE public.email_notification (
-    id character(27) NOT NULL,
+    id character(27) NOT NULL PRIMARY KEY,
     email character varying(255) NOT NULL,
     event_type character varying(100) NOT NULL,
     created_at timestamp without time zone NOT NULL,
@@ -234,8 +238,8 @@ CREATE TABLE public.email_notification (
 --
 
 CREATE TABLE public.email_subscribers (
-    email character varying(255) NOT NULL,
-    token character(27) NOT NULL,
+    email character varying(255) NOT NULL PRIMARY KEY,
+    token character(27) NOT NULL UNIQUE,
     confirmed_at timestamp without time zone,
     created_at timestamp without time zone NOT NULL
 );
@@ -258,7 +262,7 @@ CREATE TABLE public.fx_rate (
 --
 
 CREATE TABLE public.image (
-    id character(27) NOT NULL,
+    id character(27) NOT NULL PRIMARY KEY,
     bytes bytea NOT NULL,
     media_type character varying(100) NOT NULL
 );
@@ -269,14 +273,15 @@ CREATE TABLE public.image (
 --
 
 CREATE TABLE public.job (
-    id integer NOT NULL,
+    id character(27) NOT NULL PRIMARY KEY,
     job_title character varying(128) NOT NULL,
     job_category character varying(128) NOT NULL,
     company character varying(128) NOT NULL,
     location character varying(200) NOT NULL,
     salary_range character varying(100) NOT NULL,
     job_type character varying(100) NOT NULL,
-    application_link character varying(100) NOT NULL,
+    application_link text NOT NULL,
+    subscriber_email character varying(255) NOT NULL,
     description text NOT NULL,
     created_at timestamp without time zone NOT NULL,
     approved_at timestamp without time zone,
@@ -285,6 +290,12 @@ CREATE TABLE public.job (
     company_icon_image_id character varying(255) DEFAULT NULL::character varying,
     external_id character varying(28) DEFAULT ''::character varying NOT NULL,
     expired boolean DEFAULT false,
+    newsletter_eligibility_expired_at TIMESTAMP DEFAULT '1970-01-01 00:00:00',
+    social_media_eligibility_expired_at TIMESTAMP DEFAULT '1970-01-01 00:00:00',
+    blog_eligibility_expired_at TIMESTAMP DEFAULT '1970-01-01 00:00:00',
+    front_page_eligibility_expired_at TIMESTAMP DEFAULT '1970-01-01 00:00:00',
+    company_page_eligibility_expired_at TIMESTAMP DEFAULT '1970-01-01 00:00:00',
+    plan_expired_at TIMESTAMP DEFAULT '1970-01-01 00:00:00',
     last_week_clickouts integer DEFAULT 0 NOT NULL
 );
 
@@ -294,38 +305,18 @@ CREATE TABLE public.job (
 --
 
 CREATE TABLE public.job_event (
+    id character(27) NOT NULL PRIMARY KEY,
     event_type character varying(128) NOT NULL,
-    job_id integer NOT NULL,
+    job_id character(27) NOT NULL,
     created_at timestamp without time zone NOT NULL
 );
-
-
---
--- Name: job_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.job_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: job_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.job_id_seq OWNED BY public.job.id;
-
 
 --
 -- Name: meta; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.meta (
-    key character varying(255) NOT NULL,
+    key character varying(255) NOT NULL PRIMARY KEY,
     value character varying(255) NOT NULL
 );
 
@@ -335,11 +326,11 @@ CREATE TABLE public.meta (
 --
 
 CREATE TABLE public.purchase_event (
-    stripe_session_id character varying(255) NOT NULL,
+    stripe_session_id character varying(255) NOT NULL PRIMARY KEY,
     email character varying(255) DEFAULT ''::character varying NOT NULL,
     plan_id character varying(255) DEFAULT ''::character varying NOT NULL,
     description character varying(255) NOT NULL,
-    job_id integer NOT NULL,
+    job_id character(27) NOT NULL,
     created_at timestamp without time zone NOT NULL,
     completed_at timestamp without time zone
 );
@@ -350,7 +341,7 @@ CREATE TABLE public.purchase_event (
 --
 
 CREATE TABLE public.search_event (
-    session_id character varying(255) NOT NULL,
+    session_id character varying(255) NOT NULL PRIMARY KEY,
     location character varying(255) DEFAULT NULL::character varying,
     tag character varying(255) DEFAULT NULL::character varying,
     results integer NOT NULL,
@@ -364,7 +355,7 @@ CREATE TABLE public.search_event (
 --
 
 CREATE TABLE public.seo_landing_page (
-    uri character varying(255) NOT NULL,
+    uri character varying(255) NOT NULL PRIMARY KEY,
     location character varying(255) NOT NULL,
     skill character varying(255) NOT NULL
 );
@@ -375,7 +366,7 @@ CREATE TABLE public.seo_landing_page (
 --
 
 CREATE TABLE public.seo_location (
-    name character varying(255) NOT NULL,
+    name character varying(255) NOT NULL PRIMARY KEY,
     currency character varying(4) DEFAULT '$'::character varying NOT NULL,
     country character varying(255) DEFAULT NULL::character varying,
     iso2 character(2) DEFAULT NULL::bpchar,
@@ -392,7 +383,7 @@ CREATE TABLE public.seo_location (
 --
 
 CREATE TABLE public.seo_salary (
-    id character varying(255) NOT NULL,
+    id character varying(255) NOT NULL PRIMARY KEY,
     location character varying(255) NOT NULL,
     currency character varying(5) NOT NULL,
     uri character varying(100) NOT NULL
@@ -404,7 +395,7 @@ CREATE TABLE public.seo_salary (
 --
 
 CREATE TABLE public.seo_skill (
-    name character varying(255) NOT NULL
+    name character varying(255) NOT NULL PRIMARY KEY
 );
 
 
@@ -413,7 +404,7 @@ CREATE TABLE public.seo_skill (
 --
 
 CREATE TABLE public.sitemap (
-    loc character varying(255),
+    loc character varying(255) PRIMARY KEY,
     changefreq character varying(20),
     lastmod timestamp without time zone
 );
@@ -424,8 +415,9 @@ CREATE TABLE public.sitemap (
 --
 
 CREATE TABLE public.user_sign_on_token (
-    token character(27) NOT NULL,
-    email character varying(255) NOT NULL
+    token character(27) NOT NULL PRIMARY KEY,
+    email character varying(255) NOT NULL,
+    user_type VARCHAR(20) DEFAULT 'developer' NOT NULL
 );
 
 
@@ -434,18 +426,15 @@ CREATE TABLE public.user_sign_on_token (
 --
 
 CREATE TABLE public.users (
-    id character(27) NOT NULL,
+    id character(27) NOT NULL PRIMARY KEY,
     email character varying(255) NOT NULL,
+    user_type varchar(20) NOT NULL default 'developer',
+    role_level VARCHAR(20) NOT NULL DEFAULT 'mid-level',
+    search_status VARCHAR(20) NOT NULL DEFAULT 'casually-looking',
+    role_types VARCHAR(60) NOT NULL DEFAULT 'full-time',
+    detected_location_id VARCHAR(255) DEFAULT NULL,
     created_at timestamp without time zone
 );
-
-
---
--- Name: job id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.job ALTER COLUMN id SET DEFAULT nextval('public.job_id_seq'::regclass);
-
 
 --
 -- Name: cloudflare_browser_stats cloudflare_browser_stats_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -478,147 +467,12 @@ ALTER TABLE ONLY public.cloudflare_stats
 ALTER TABLE ONLY public.cloudflare_status_code_stats
     ADD CONSTRAINT cloudflare_status_code_stats_pkey PRIMARY KEY (date, requests);
 
-
---
--- Name: company company_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.company
-    ADD CONSTRAINT company_pkey PRIMARY KEY (id);
-
-
---
--- Name: developer_profile_message developer_profile_message_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.developer_profile_message
-    ADD CONSTRAINT developer_profile_message_pkey PRIMARY KEY (id);
-
-
---
--- Name: developer_profile developer_profile_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.developer_profile
-    ADD CONSTRAINT developer_profile_pkey PRIMARY KEY (id);
-
-
---
--- Name: email_notification email_notification_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.email_notification
-    ADD CONSTRAINT email_notification_pkey PRIMARY KEY (id);
-
-
---
--- Name: email_subscribers email_subscribers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.email_subscribers
-    ADD CONSTRAINT email_subscribers_pkey PRIMARY KEY (email);
-
-
---
--- Name: email_subscribers email_subscribers_token_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.email_subscribers
-    ADD CONSTRAINT email_subscribers_token_key UNIQUE (token);
-
-
 --
 -- Name: fx_rate fx_rate_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.fx_rate
     ADD CONSTRAINT fx_rate_pkey PRIMARY KEY (base, target);
-
-
---
--- Name: image image_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.image
-    ADD CONSTRAINT image_pkey PRIMARY KEY (id);
-
-
---
--- Name: job job_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.job
-    ADD CONSTRAINT job_pkey PRIMARY KEY (id);
-
-
---
--- Name: meta meta_key_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.meta
-    ADD CONSTRAINT meta_key_key UNIQUE (key);
-
-
---
--- Name: seo_landing_page seo_landing_page_uri_unique_idx; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.seo_landing_page
-    ADD CONSTRAINT seo_landing_page_uri_unique_idx UNIQUE (uri);
-
-
---
--- Name: seo_location seo_location_name_unique_idx; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.seo_location
-    ADD CONSTRAINT seo_location_name_unique_idx UNIQUE (name);
-
-
---
--- Name: seo_skill seo_skill_name_unique_idx; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.seo_skill
-    ADD CONSTRAINT seo_skill_name_unique_idx UNIQUE (name);
-
-
---
--- Name: user_sign_on_token user_sign_on_token_token_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.user_sign_on_token
-    ADD CONSTRAINT user_sign_on_token_token_key UNIQUE (token);
-
-
---
--- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.users
-    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
-
-
---
--- Name: apply_token_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX apply_token_idx ON public.apply_token USING btree (token);
-
-
---
--- Name: company_icon_image_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX company_icon_image_id_idx ON public.job USING btree (company_icon_image_id);
-
-
---
--- Name: company_name_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX company_name_idx ON public.company USING btree (name);
-
 
 --
 -- Name: company_slug_idx; Type: INDEX; Schema: public; Owner: -
@@ -649,27 +503,6 @@ CREATE INDEX purchase_event_job_id_idx ON public.purchase_event USING btree (job
 
 
 --
--- Name: purchase_event_stripe_session_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX purchase_event_stripe_session_id_idx ON public.purchase_event USING btree (stripe_session_id);
-
-
---
--- Name: seo_landing_page_uri; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX seo_landing_page_uri ON public.seo_landing_page USING btree (uri);
-
-
---
--- Name: seo_salary_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX seo_salary_idx ON public.seo_salary USING btree (id);
-
-
---
 -- Name: slug_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -677,25 +510,10 @@ CREATE UNIQUE INDEX slug_idx ON public.job USING btree (slug);
 
 
 --
--- Name: token_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX token_idx ON public.edit_token USING btree (token);
-
-
---
 -- Name: url_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX url_id_idx ON public.job USING btree (url_id);
-
-
---
--- Name: user_sign_on_token_token_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX user_sign_on_token_token_idx ON public.user_sign_on_token USING btree (token);
-
 
 --
 -- Name: apply_token apply_token_job_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -753,12 +571,8 @@ ALTER TABLE ONLY public.purchase_event
     ADD CONSTRAINT purchase_event_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.job(id);
 
 
---
--- PostgreSQL database dump complete
---
-
 CREATE TABLE IF NOT EXISTS public.blog_post (
-	id CHAR(27) NOT NULL,
+	id CHAR(27) NOT NULL PRIMARY KEY,
 	title VARCHAR(255) NOT NULL,
 	description VARCHAR(255) NOT NULL,
 	slug VARCHAR(255) NOT NULL,
@@ -767,40 +581,22 @@ CREATE TABLE IF NOT EXISTS public.blog_post (
 	created_at TIMESTAMP NOT NULL,
 	updated_at TIMESTAMP NOT NULL,
 	created_by CHAR(27) NOT NULL,
-	published_at TIMESTAMP DEFAULT NULL,
-	PRIMARY KEY (id)
+	published_at TIMESTAMP DEFAULT NULL
 );
 
  CREATE UNIQUE INDEX blog_post_slug_idx on public.blog_post (slug);
  
  CREATE TABLE "public"."recruiter_profile" (
-    "id" bpchar(27) NOT NULL,
+    "id" char(27) NOT NULL PRIMARY KEY,
     "email" varchar(255) NOT NULL,
-    "title" varchar(255) NOT NULL,
-    "company" varchar(255) NOT NULL,
     "company_url" varchar(255) NOT NULL,
     "slug" varchar(255) NOT NULL,
     "created_at" timestamp NOT NULL,
     "updated_at" timestamp,
-    "name" varchar(255),
-    PRIMARY KEY ("id")
+    "name" varchar(255)
 );
 
-ALTER TABLE ONLY public.job ADD COLUMN plan_type VARCHAR(255) NOT NULL DEFAULT 'basic';
-ALTER TABLE ONLY public.job ADD COLUMN plan_duration INTEGER NOT NULL DEFAULT 1;
-ALTER TABLE ONLY public.job ADD COLUMN newsletter_eligibility_expired_at TIMESTAMP DEFAULT '1970-01-01 00:00:00';
-ALTER TABLE ONLY public.job ADD COLUMN social_media_eligibility_expired_at TIMESTAMP DEFAULT '1970-01-01 00:00:00';
-ALTER TABLE ONLY public.job ADD COLUMN blog_eligibility_expired_at TIMESTAMP DEFAULT '1970-01-01 00:00:00';
-ALTER TABLE ONLY public.job ADD COLUMN front_page_eligibility_expired_at TIMESTAMP DEFAULT '1970-01-01 00:00:00';
-ALTER TABLE ONLY public.job ADD COLUMN company_page_eligibility_expired_at TIMESTAMP DEFAULT '1970-01-01 00:00:00';
-ALTER TABLE ONLY public.job ADD COLUMN plan_expired_at TIMESTAMP DEFAULT '1970-01-01 00:00:00';
-ALTER TABLE ONLY public.company ADD COLUMN company_page_eligibility_expired_at TIMESTAMP DEFAULT '1970-01-01 00:00:00';
-ALTER TABLE ONLY public.user_sign_on_token ADD COLUMN user_type VARCHAR(20) DEFAULT 'developer';
-ALTER TABLE ONLY public.developer_profile ADD COLUMN role_level VARCHAR(20) NOT NULL DEFAULT 'mid-level';
-ALTER TABLE ONLY public.developer_profile ADD COLUMN search_status VARCHAR(20) NOT NULL DEFAULT 'casually-looking';
-ALTER TABLE ONLY public.developer_profile ADD COLUMN role_types VARCHAR(60) NOT NULL DEFAULT 'full-time';
-ALTER TABLE ONLY public.developer_profile ADD COLUMN detected_location_id VARCHAR(255) DEFAULT NULL;
-ALTER TABLE ONLY public.users ADD COLUMN user_type VARCHAR(20) DEFAULT 'developer';
-ALTER TABLE ONLY public.developer_profile ADD COLUMN hourly_rate INTEGER DEFAULT 0;
-ALTER TABLE ONLY public.recruiter_profile DROP COLUMN company;
-ALTER TABLE ONLY public.recruiter_profile DROP COLUMN title;
+
+--
+-- PostgreSQL database dump complete
+--
