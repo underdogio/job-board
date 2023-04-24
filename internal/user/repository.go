@@ -63,11 +63,6 @@ func (r *Repository) GetOrCreateUserFromToken(token string) (User, bool, error) 
 	return u, true, nil
 }
 
-func (r *Repository) DeleteUserByEmail(email string) error {
-	_, err := r.db.Exec(`DELETE FROM users WHERE email = $1`, email)
-	return err
-}
-
 func (r *Repository) GetUser(email string) (User, error) {
 	u := User{}
 	row := r.db.QueryRow(`SELECT id, email, created_at, user_type FROM users WHERE email = $1`, email)

@@ -2,8 +2,6 @@ package database
 
 import (
 	"database/sql"
-	"fmt"
-	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -726,97 +724,6 @@ type SitemapEntry struct {
 	LastMod    time.Time
 }
 
-const SitemapSize = 1000
-
-func GetSitemapEntryCount(conn *sql.DB) (int, error) {
-	var count int
-	row := conn.QueryRow(`SELECT COUNT(*) as c FROM sitemap`)
-	if err := row.Scan(&count); err != nil {
-		return count, err
-	}
-
-	return count, nil
-}
-
-func GetSitemapLastMod(conn *sql.DB) (time.Time, error) {
-	var lastMod time.Time
-	row := conn.QueryRow(`SELECT lastmod FROM sitemap ORDER BY lastmod DESC LIMIT 1`)
-	if err := row.Scan(&lastMod); err != nil {
-		return lastMod, err
-	}
-
-	return lastMod, nil
-}
-
-func GetWebsitePageViewsLast30Days(conn *sql.DB) (int, error) {
-	var c int
-	row := conn.QueryRow(`SELECT SUM(page_views) AS c FROM cloudflare_browser_stats WHERE date > CURRENT_DATE - 30 AND ua_browser_family NOT ILIKE '%bot%'`)
-	if err := row.Scan(&c); err != nil {
-		return 100000, nil
-	}
-
-	return c, nil
-}
-
-func GetJobPageViewsLast30Days(conn *sql.DB) (int, error) {
-	var c int
-	row := conn.QueryRow(`SELECT COUNT(*) AS c FROM job_event WHERE event_type = 'page_view' AND created_at > CURRENT_DATE - 30`)
-	if err := row.Scan(&c); err != nil {
-		return 100000, nil
-	}
-
-	return c, nil
-}
-
-func GetJobClickoutsLast30Days(conn *sql.DB) (int, error) {
-	var c int
-	row := conn.QueryRow(`SELECT COUNT(*) AS c FROM job_event WHERE event_type = 'clickout' AND created_at > CURRENT_DATE - 30`)
-	if err := row.Scan(&c); err != nil {
-		return 100000, nil
-	}
-
-	return c, nil
-}
-
-func GetSitemapIndex(conn *sql.DB, siteHost string) ([]SitemapEntry, error) {
-	entries := make([]SitemapEntry, 0, 20)
-	count, err := GetSitemapEntryCount(conn)
-	if err != nil {
-		return entries, err
-	}
-	lastMod, err := GetSitemapLastMod(conn)
-	if err != nil {
-		return entries, err
-	}
-	slots := math.Ceil(float64(count) / float64(SitemapSize))
-	for i := 1; i <= int(slots); i++ {
-		entries = append(entries, SitemapEntry{
-			Loc:     fmt.Sprintf("https://%s/sitemap-%d.xml", siteHost, i),
-			LastMod: lastMod,
-		})
-	}
-
-	return entries, nil
-}
-
-func GetSitemapNo(conn *sql.DB, n int) ([]SitemapEntry, error) {
-	entries := make([]SitemapEntry, 0, SitemapSize)
-	offset := (n - 1) * SitemapSize
-	var rows *sql.Rows
-	rows, err := conn.Query(`SELECT * FROM sitemap LIMIT $1 OFFSET $2`, SitemapSize, offset)
-	if err != nil {
-		return entries, err
-	}
-	for rows.Next() {
-		var entry SitemapEntry
-		if err := rows.Scan(&entry.Loc, &entry.ChangeFreq, &entry.LastMod); err != nil {
-			return entries, err
-		}
-		entries = append(entries, entry)
-	}
-	return entries, nil
-}
-
 func SaveSitemapEntry(conn *sql.DB, entry SitemapEntry) error {
 	_, err := conn.Exec(`INSERT INTO sitemap_tmp VALUES ($1, $2, $3)`, entry.Loc, entry.ChangeFreq, entry.LastMod)
 	return err
@@ -829,11 +736,5 @@ func CreateTmpSitemapTable(conn *sql.DB) error {
 
 func SwapSitemapTable(conn *sql.DB) error {
 	_, err := conn.Exec(`BEGIN; ALTER TABLE sitemap RENAME TO sitemap_old; ALTER TABLE sitemap_tmp RENAME TO sitemap; DROP TABLE sitemap_old; COMMIT;`)
-	return err
-}
-
-func UpdateLastWeekClickouts(conn *sql.DB) error {
-	_, err := conn.Exec(`WITH cte AS (SELECT job_id, count(*) AS clickouts FROM job_event WHERE event_type = 'clickout' AND created_at > CURRENT_DATE - 7 GROUP BY job_id)
-UPDATE job SET last_week_clickouts = cte.clickouts FROM cte WHERE cte.job_id = id`)
 	return err
 }

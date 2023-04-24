@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"image/png"
 	"io/ioutil"
 	"log"
+	"math"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -43,8 +45,10 @@ import (
 	"github.com/nfnt/resize"
 	"github.com/segmentio/ksuid"
 	"github.com/snabb/sitemap"
+	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries"
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
 const (
@@ -403,31 +407,32 @@ func TriggerSitemapUpdate(svr server.Server, devRepo *developer.Repository, jobR
 		svr.GetConfig().MachineToken,
 		func(w http.ResponseWriter, r *http.Request) {
 			go func() {
+				ctx := r.Context()
 				tx, err := svr.Conn.BeginTx(r.Context(), nil)
 				if err != nil {
 					svr.Log(err, "svr.Conn.BeginTx")
 					return
 				}
 				queries.Raw(`INSERT INTO seo_skill select distinct company from job on conflict do nothing`).ExecContext(r.Context(), tx)
-				landingPages, err := seo.GenerateSearchSEOLandingPages(tx, svr.GetConfig().SiteJobCategory)
+				landingPages, err := seo.GenerateSearchSeoLandingPages(ctx, tx, svr.GetConfig().SiteJobCategory)
 				if err != nil {
 					svr.Log(err, "seo.GenerateSearchSEOLandingPages")
 					return
 				}
 				fmt.Println("generating post a job landing page")
-				postAJobLandingPages, err := seo.GeneratePostAJobSEOLandingPages(tx, svr.GetConfig().SiteJobCategory)
+				postAJobLandingPages, err := seo.GeneratePostAJobSeoLandingPages(ctx, tx, svr.GetConfig().SiteJobCategory)
 				if err != nil {
 					svr.Log(err, "seo.GeneratePostAJobSEOLandingPages")
 					return
 				}
 				fmt.Println("generating salary landing page")
-				salaryLandingPages, err := seo.GenerateSalarySEOLandingPages(tx, svr.GetConfig().SiteJobCategory)
+				salaryLandingPages, err := seo.GenerateSalarySeoLandingPages(ctx, tx, svr.GetConfig().SiteJobCategory)
 				if err != nil {
 					svr.Log(err, "seo.GenerateSalarySEOLandingPages")
 					return
 				}
 				fmt.Println("generating companies landing page")
-				companyLandingPages, err := seo.GenerateCompaniesLandingPages(tx, svr.GetConfig().SiteJobCategory)
+				companyLandingPages, err := seo.GenerateCompaniesLandingPages(ctx, tx, svr.GetConfig().SiteJobCategory)
 				if err != nil {
 					svr.Log(err, "seo.GenerateCompaniesLandingPages")
 					return
@@ -451,7 +456,7 @@ func TriggerSitemapUpdate(svr server.Server, devRepo *developer.Repository, jobR
 					return
 				}
 				fmt.Println("generating dev location pages")
-				developerLocationPages, err := seo.GenerateDevelopersLocationPages(svr.Conn, svr.GetConfig().SiteJobCategory)
+				developerLocationPages, err := seo.GenerateDevelopersLocationPages(ctx, svr.GetConfig().SiteJobCategory)
 				if err != nil {
 					svr.Log(err, "seo.GenerateDevelopersLocationPages")
 					return
@@ -469,126 +474,137 @@ func TriggerSitemapUpdate(svr server.Server, devRepo *developer.Repository, jobR
 					svr.Log(err, "database.JobPostByCreatedAt")
 					return
 				}
-				n := time.Now().UTC()
+				n := null.TimeFrom(time.Now().UTC())
 
-				database.CreateTmpSitemapTable(svr.Conn)
+				_, err = database.Sitemaps().DeleteAll(ctx, tx)
+				if err != nil {
+					svr.Log(err, "database.Sitemaps().DeleteAll")
+					return
+				}
 				for _, j := range jobPosts {
 					fmt.Println("job post page generating...")
-					if err := database.SaveSitemapEntry(svr.Conn, database.SitemapEntry{
+					sitemap := database.Sitemap{
 						Loc:        fmt.Sprintf(`https://%s/job/%s`, svr.GetConfig().SiteHost, j.Slug),
-						LastMod:    time.Unix(j.CreatedAt, 0),
-						ChangeFreq: "weekly",
-					}); err != nil {
+						Changefreq: null.StringFrom("weekly"),
+						Lastmod:    null.TimeFrom(time.Unix(j.CreatedAt, 0)),
+					}
+					if err := sitemap.Insert(ctx, tx, boil.Infer()); err != nil {
 						svr.Log(err, fmt.Sprintf("database.SaveSitemapEntry: %s", j.Slug))
 					}
 				}
 
 				for _, b := range blogPosts {
 					fmt.Println("blog post page generating...")
-					if err := database.SaveSitemapEntry(svr.Conn, database.SitemapEntry{
+					sitemap := database.Sitemap{
 						Loc:        fmt.Sprintf(`https://%s/blog/%s`, svr.GetConfig().SiteHost, b.Path),
-						LastMod:    n,
-						ChangeFreq: "weekly",
-					}); err != nil {
+						Changefreq: null.StringFrom("weekly"),
+						Lastmod:    n,
+					}
+					if err := sitemap.Insert(ctx, tx, boil.Infer()); err != nil {
 						svr.Log(err, fmt.Sprintf("database.SaveSitemapEntry: %s", b.Path))
 					}
 				}
 
 				for _, p := range pages {
 					fmt.Println("static page generating...")
-					if err := database.SaveSitemapEntry(svr.Conn, database.SitemapEntry{
+					sitemap := database.Sitemap{
 						Loc:        fmt.Sprintf(`https://%s/%s`, svr.GetConfig().SiteHost, p),
-						LastMod:    n,
-						ChangeFreq: "weekly",
-					}); err != nil {
+						Changefreq: null.StringFrom("weekly"),
+						Lastmod:    n,
+					}
+					if err := sitemap.Insert(ctx, tx, boil.Infer()); err != nil {
 						svr.Log(err, fmt.Sprintf("database.SaveSitemapEntry: %s", p))
 					}
 				}
 
 				for i, p := range postAJobLandingPages {
 					fmt.Println("post a job landing page generating...", i, len(postAJobLandingPages))
-					if err := database.SaveSitemapEntry(svr.Conn, database.SitemapEntry{
+					sitemap := database.Sitemap{
 						Loc:        fmt.Sprintf(`https://%s/%s`, svr.GetConfig().SiteHost, p),
-						LastMod:    n,
-						ChangeFreq: "weekly",
-					}); err != nil {
+						Changefreq: null.StringFrom("weekly"),
+						Lastmod:    n,
+					}
+					if err := sitemap.Insert(ctx, tx, boil.Infer()); err != nil {
 						svr.Log(err, fmt.Sprintf("database.SaveSitemapEntry: %s", p))
 					}
 				}
 
 				for i, p := range salaryLandingPages {
 					fmt.Println("salary landing page generating...", i, len(salaryLandingPages))
-					if err := database.SaveSitemapEntry(svr.Conn, database.SitemapEntry{
+					sitemap := database.Sitemap{
 						Loc:        fmt.Sprintf(`https://%s/%s`, svr.GetConfig().SiteHost, p),
-						LastMod:    n,
-						ChangeFreq: "weekly",
-					}); err != nil {
+						Changefreq: null.StringFrom("weekly"),
+						Lastmod:    n,
+					}
+					if err := sitemap.Insert(ctx, tx, boil.Infer()); err != nil {
 						svr.Log(err, fmt.Sprintf("database.SaveSitemapEntry: %s", p))
 					}
 				}
 
 				for i, p := range landingPages {
 					fmt.Println("landing page generating...", i, len(landingPages))
-					if err := database.SaveSitemapEntry(svr.Conn, database.SitemapEntry{
+					sitemap := database.Sitemap{
 						Loc:        fmt.Sprintf(`https://%s/%s`, svr.GetConfig().SiteHost, p.URI),
-						LastMod:    n,
-						ChangeFreq: "weekly",
-					}); err != nil {
+						Changefreq: null.StringFrom("weekly"),
+						Lastmod:    n,
+					}
+					if err := sitemap.Insert(ctx, tx, boil.Infer()); err != nil {
 						svr.Log(err, fmt.Sprintf("database.SaveSitemapEntry: %s", p))
 					}
 				}
 
 				for _, p := range companyLandingPages {
-					if err := database.SaveSitemapEntry(svr.Conn, database.SitemapEntry{
+					sitemap := database.Sitemap{
 						Loc:        fmt.Sprintf(`https://%s/%s`, svr.GetConfig().SiteHost, p),
-						LastMod:    n,
-						ChangeFreq: "weekly",
-					}); err != nil {
+						Changefreq: null.StringFrom("weekly"),
+						Lastmod:    n,
+					}
+					if err := sitemap.Insert(ctx, tx, boil.Infer()); err != nil {
 						svr.Log(err, fmt.Sprintf("database.SaveSitemapEntry: %s", p))
 					}
 				}
 
 				for _, p := range developerSkillsPages {
-					if err := database.SaveSitemapEntry(svr.Conn, database.SitemapEntry{
+					sitemap := database.Sitemap{
 						Loc:        fmt.Sprintf(`https://%s/%s`, svr.GetConfig().SiteHost, p),
-						LastMod:    n,
-						ChangeFreq: "weekly",
-					}); err != nil {
+						Changefreq: null.StringFrom("weekly"),
+						Lastmod:    n,
+					}
+					if err := sitemap.Insert(ctx, tx, boil.Infer()); err != nil {
 						svr.Log(err, fmt.Sprintf("database.SaveSitemapEntry: %s", p))
 					}
 				}
 
 				for _, p := range developerProfilePages {
-					if err := database.SaveSitemapEntry(svr.Conn, database.SitemapEntry{
+					sitemap := database.Sitemap{
 						Loc:        fmt.Sprintf(`https://%s/%s`, svr.GetConfig().SiteHost, p),
-						LastMod:    n,
-						ChangeFreq: "weekly",
-					}); err != nil {
+						Changefreq: null.StringFrom("weekly"),
+						Lastmod:    n,
+					}
+					if err := sitemap.Insert(ctx, tx, boil.Infer()); err != nil {
 						svr.Log(err, fmt.Sprintf("database.SaveSitemapEntry: %s", p))
 					}
 				}
 				for _, p := range companyProfilePages {
-					if err := database.SaveSitemapEntry(svr.Conn, database.SitemapEntry{
+					sitemap := database.Sitemap{
 						Loc:        fmt.Sprintf(`https://%s/%s`, svr.GetConfig().SiteHost, p),
-						LastMod:    n,
-						ChangeFreq: "weekly",
-					}); err != nil {
+						Changefreq: null.StringFrom("weekly"),
+						Lastmod:    n,
+					}
+					if err := sitemap.Insert(ctx, tx, boil.Infer()); err != nil {
 						svr.Log(err, fmt.Sprintf("database.SaveSitemapEntry: %s", p))
 					}
 				}
 
 				for _, p := range developerLocationPages {
-					if err := database.SaveSitemapEntry(svr.Conn, database.SitemapEntry{
+					sitemap := database.Sitemap{
 						Loc:        fmt.Sprintf(`https://%s/%s`, svr.GetConfig().SiteHost, p),
-						LastMod:    n,
-						ChangeFreq: "weekly",
-					}); err != nil {
+						Changefreq: null.StringFrom("weekly"),
+						Lastmod:    n,
+					}
+					if err := sitemap.Insert(ctx, tx, boil.Infer()); err != nil {
 						svr.Log(err, fmt.Sprintf("database.SaveSitemapEntry: %s", p))
 					}
-				}
-				fmt.Println("swapping sitemap table")
-				if err := database.SwapSitemapTable(svr.Conn); err != nil {
-					svr.Log(err, "database.SwapSitemapTable")
 				}
 			}()
 		})
@@ -631,7 +647,7 @@ func TriggerUpdateLastWeekClickouts(svr server.Server) http.HandlerFunc {
 		svr.GetConfig().MachineToken,
 		func(w http.ResponseWriter, r *http.Request) {
 			go func() {
-				err := database.UpdateLastWeekClickouts(svr.Conn)
+				err := UpdateLastWeekClickouts(r.Context(), svr.Conn)
 				if err != nil {
 					svr.Log(err, "unable to update last week clickouts")
 					return
@@ -642,11 +658,18 @@ func TriggerUpdateLastWeekClickouts(svr server.Server) http.HandlerFunc {
 	)
 }
 
+func UpdateLastWeekClickouts(ctx context.Context, conn *sql.DB) error {
+	_, err := conn.Exec(`WITH cte AS (SELECT job_id, count(*) AS clickouts FROM job_event WHERE event_type = 'clickout' AND created_at > CURRENT_DATE - 7 GROUP BY job_id)
+	UPDATE job SET last_week_clickouts = cte.clickouts FROM cte WHERE cte.job_id = id`)
+	return err
+}
+
 func TriggerCloudflareStatsExport(svr server.Server) http.HandlerFunc {
 	return middleware.MachineAuthenticatedMiddleware(
 		svr.GetConfig().MachineToken,
 		func(w http.ResponseWriter, r *http.Request) {
 			go func() {
+				ctx := r.Context()
 				client := graphql.NewClient(svr.GetConfig().CloudflareAPIEndpoint)
 				req := graphql.NewRequest(
 					`query {
@@ -703,27 +726,27 @@ func TriggerCloudflareStatsExport(svr server.Server) http.HandlerFunc {
 									Date string `json:"date"`
 								} `json:"dimensions"`
 								Sum struct {
-									Bytes       uint64 `json:"bytes"`
-									CachedBytes uint64 `json:"cachedBytes"`
+									Bytes       int64 `json:"bytes"`
+									CachedBytes int64 `json:"cachedBytes"`
 									CountryMap  []struct {
 										ClientCountryName string `json:"clientCountryName"`
-										Requests          uint64 `json:"requests"`
-										Threats           uint64 `json:"threats"`
+										Requests          int64  `json:"requests"`
+										Threats           int64  `json:"threats"`
 									} `json:"countryMap"`
 									BrowserMap []struct {
 										UABrowserFamily string `json:"uaBrowserFamily"`
-										PageViews       uint64 `json:"pageViews"`
+										PageViews       int64  `json:"pageViews"`
 									} `json:"browserMap"`
-									PageViews         uint64 `json:"pageViews"`
-									Requests          uint64 `json:"requests"`
+									PageViews         int64 `json:"pageViews"`
+									Requests          int64 `json:"requests"`
 									ResponseStatusMap []struct {
-										EdgeResponseStatus int    `json:"edgeResponseStatus"`
-										Requests           uint64 `json:"requests"`
+										EdgeResponseStatus int   `json:"edgeResponseStatus"`
+										Requests           int64 `json:"requests"`
 									} `json:"responseStatusMap"`
-									Threats uint64 `json:"threats"`
+									Threats int64 `json:"threats"`
 								} `json:"sum"`
 								Uniq struct {
-									Uniques uint64 `json:"uniques"`
+									Uniques int64 `json:"uniques"`
 								} `json:"uniq"`
 							} `json:"httpRequests1dGroups"`
 						} `json:"zones"`
@@ -755,7 +778,7 @@ func TriggerCloudflareStatsExport(svr server.Server) http.HandlerFunc {
 					stat.Requests = d.Sum.Requests
 					stat.Threats = d.Sum.Threats
 					stat.Uniques = d.Uniq.Uniques
-					if err := database.SaveCloudflareStat(svr.Conn, stat); err != nil {
+					if err := stat.InsertG(ctx, boil.Infer()); err != nil {
 						svr.Log(err, "database.SaveCloudflareStat")
 						return
 					}
@@ -764,7 +787,7 @@ func TriggerCloudflareStatsExport(svr server.Server) http.HandlerFunc {
 						statusCodeStat.Date = stat.Date
 						statusCodeStat.StatusCode = v.EdgeResponseStatus
 						statusCodeStat.Requests = v.Requests
-						if err := database.SaveCloudflareStatusCodeStat(svr.Conn, statusCodeStat); err != nil {
+						if err := statusCodeStat.InsertG(ctx, boil.Infer()); err != nil {
 							svr.Log(err, "database.SaveCloudflareStatusCodeStat")
 							return
 						}
@@ -775,7 +798,7 @@ func TriggerCloudflareStatsExport(svr server.Server) http.HandlerFunc {
 						countryStat.CountryCode = v.ClientCountryName
 						countryStat.Requests = v.Requests
 						countryStat.Threats = v.Threats
-						if err := database.SaveCloudflareCountryStat(svr.Conn, countryStat); err != nil {
+						if err := countryStat.InsertG(ctx, boil.Infer()); err != nil {
 							svr.Log(err, "database.SaveCloudflareCountryStat")
 							return
 						}
@@ -784,8 +807,8 @@ func TriggerCloudflareStatsExport(svr server.Server) http.HandlerFunc {
 					for _, v := range d.Sum.BrowserMap {
 						browserStat.Date = stat.Date
 						browserStat.PageViews = v.PageViews
-						browserStat.UABrowserFamily = v.UABrowserFamily
-						if err := database.SaveCloudflareBrowserStat(svr.Conn, browserStat); err != nil {
+						browserStat.UaBrowserFamily = v.UABrowserFamily
+						if err := browserStat.InsertG(ctx, boil.Infer()); err != nil {
 							svr.Log(err, "database.SaveCloudflareBrowserStat")
 							return
 						}
@@ -819,7 +842,9 @@ func TriggerWeeklyNewsletter(svr server.Server, jobRepo *job.Repository) http.Ha
 					return
 				}
 				fmt.Printf("found %d/%d jobs for weekly newsletter\n", len(jobPosts), svr.GetConfig().NewsletterJobsToSend)
-				subscribers, err := database.GetEmailSubscribers(svr.Conn)
+				subscribers, err := database.EmailSubscribers(
+					database.EmailSubscriberWhere.ConfirmedAt.IsNotNull(),
+				).AllG(r.Context())
 				if err != nil {
 					svr.Log(err, "unable to retrieve subscribers")
 					return
@@ -914,17 +939,17 @@ func TriggerMonthlyHighlights(svr server.Server, jobRepo *job.Repository) http.H
 		svr.GetConfig().MachineToken,
 		func(w http.ResponseWriter, r *http.Request) {
 			go func() {
-				pageviewsLast30Days, err := database.GetWebsitePageViewsLast30Days(svr.Conn)
+				pageviewsLast30Days, err := GetWebsitePageViewsLast30Days(svr.Conn)
 				if err != nil {
 					svr.Log(err, "could not retrieve pageviews for last 30 days")
 					return
 				}
-				jobPageviewsLast30Days, err := database.GetJobPageViewsLast30Days(svr.Conn)
+				jobPageviewsLast30Days, err := GetJobPageViewsLast30Days(svr.Conn)
 				if err != nil {
 					svr.Log(err, "could not retrieve job pageviews for last 30 days")
 					return
 				}
-				jobApplicantsLast30Days, err := database.GetJobClickoutsLast30Days(svr.Conn)
+				jobApplicantsLast30Days, err := GetJobClickoutsLast30Days(svr.Conn)
 				if err != nil {
 					svr.Log(err, "could not retrieve job clickouts for last 30 days")
 					return
@@ -959,6 +984,36 @@ func TriggerMonthlyHighlights(svr server.Server, jobRepo *job.Repository) http.H
 			}()
 		},
 	)
+}
+
+func GetWebsitePageViewsLast30Days(conn *sql.DB) (int, error) {
+	var c int
+	row := conn.QueryRow(`SELECT SUM(page_views) AS c FROM cloudflare_browser_stats WHERE date > CURRENT_DATE - 30 AND ua_browser_family NOT ILIKE '%bot%'`)
+	if err := row.Scan(&c); err != nil {
+		return 100000, nil
+	}
+
+	return c, nil
+}
+
+func GetJobPageViewsLast30Days(conn *sql.DB) (int, error) {
+	var c int
+	row := conn.QueryRow(`SELECT COUNT(*) AS c FROM job_event WHERE event_type = 'page_view' AND created_at > CURRENT_DATE - 30`)
+	if err := row.Scan(&c); err != nil {
+		return 100000, nil
+	}
+
+	return c, nil
+}
+
+func GetJobClickoutsLast30Days(conn *sql.DB) (int, error) {
+	var c int
+	row := conn.QueryRow(`SELECT COUNT(*) AS c FROM job_event WHERE event_type = 'clickout' AND created_at > CURRENT_DATE - 30`)
+	if err := row.Scan(&c); err != nil {
+		return 100000, nil
+	}
+
+	return c, nil
 }
 
 func TriggerTwitterScheduler(svr server.Server, jobRepo *job.Repository) http.HandlerFunc {
@@ -1285,12 +1340,16 @@ func DeleteDeveloperProfileHandler(svr server.Server, devRepo *developer.Reposit
 				svr.JSON(w, http.StatusInternalServerError, nil)
 				return
 			}
-			if imageErr := database.DeleteImageByID(svr.Conn, req.ImageID); imageErr != nil {
+			if _, imageErr := database.Images(
+				database.ImageWhere.ID.EQ(req.ImageID),
+			).DeleteAllG(r.Context()); imageErr != nil {
 				svr.Log(err, "unable to delete developer profile image id "+req.ImageID)
 				svr.JSON(w, http.StatusInternalServerError, nil)
 				return
 			}
-			if userErr := userRepo.DeleteUserByEmail(req.Email); userErr != nil {
+			if _, userErr := database.Users(
+				database.UserWhere.Email.EQ(req.Email),
+			).DeleteAllG(r.Context()); userErr != nil {
 				svr.Log(err, "unable to delete user by email "+req.Email)
 				svr.JSON(w, http.StatusInternalServerError, nil)
 			}
@@ -1303,7 +1362,14 @@ func ConfirmEmailSubscriberHandler(svr server.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		token := vars["token"]
-		err := database.ConfirmEmailSubscriber(svr.Conn, token)
+		_, err := database.EmailSubscribers(
+			database.EmailSubscriberWhere.Token.EQ(token),
+		).UpdateAllG(
+			r.Context(),
+			database.M{
+				database.EmailSubscriberColumns.ConfirmedAt: time.Now(),
+			},
+		)
 		if err != nil {
 			svr.Log(err, "unable to confirm subscriber using token "+token)
 			svr.TEXT(w, http.StatusInternalServerError, "There was an error with your request. Please try again later.")
@@ -1315,7 +1381,9 @@ func ConfirmEmailSubscriberHandler(svr server.Server) http.HandlerFunc {
 
 func RemoveEmailSubscriberHandler(svr server.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := database.RemoveEmailSubscriber(svr.Conn, r.URL.Query().Get("token"))
+		_, err := database.EmailSubscribers(
+			database.EmailSubscriberWhere.Token.EQ(r.URL.Query().Get("token")),
+		).DeleteAllG(r.Context())
 		if err != nil {
 			svr.Log(err, "unable to add email subscriber to db")
 			svr.TEXT(w, http.StatusInternalServerError, "")
@@ -1339,7 +1407,12 @@ func AddEmailSubscriberHandler(svr server.Server) http.HandlerFunc {
 			svr.JSON(w, http.StatusBadRequest, nil)
 			return
 		}
-		err = database.AddEmailSubscriber(svr.Conn, emailStr, k.String())
+		subscriber := &database.EmailSubscriber{
+			Email:     emailStr,
+			Token:     k.String(),
+			CreatedAt: time.Now(),
+		}
+		err = subscriber.InsertG(r.Context(), boil.Infer())
 		if err != nil {
 			svr.Log(err, "unable to add email subscriber to db")
 			svr.JSON(w, http.StatusInternalServerError, nil)
@@ -1450,7 +1523,11 @@ func SendMessageDeveloperProfileHandler(svr server.Server, devRepo *developer.Re
 func AutocompleteLocation(svr server.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		prefix := r.URL.Query().Get("k")
-		locs, err := database.LocationsByPrefix(svr.Conn, prefix)
+		locs, err := database.SeoLocations(
+			qm.Where("name ILIKE ?", fmt.Sprintf("%s%%", prefix)),
+			qm.OrderBy(database.SeoLocationColumns.Population+" DESC"),
+			qm.Limit(5),
+		).AllG(r.Context())
 		if err != nil {
 			svr.Log(err, "unable to retrieve locations by prefix")
 			svr.JSON(w, http.StatusInternalServerError, nil)
@@ -1463,7 +1540,11 @@ func AutocompleteLocation(svr server.Server) http.HandlerFunc {
 func AutocompleteSkill(svr server.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		prefix := r.URL.Query().Get("k")
-		skills, err := database.SkillsByPrefix(svr.Conn, prefix)
+		skills, err := database.SeoSkills(
+			qm.Where("name ILIKE ?", fmt.Sprintf("%s%%", prefix)),
+			qm.OrderBy(database.SeoSkillColumns.Name+" ASC"),
+			qm.Limit(5),
+		).AllG(r.Context())
 		if err != nil {
 			svr.Log(err, "unable to retrieve skills by prefix")
 			svr.JSON(w, http.StatusInternalServerError, nil)
@@ -1820,7 +1901,11 @@ func VerifyTokenSignOn(svr server.Server, userRepo *user.Repository, devRepo *de
 					return
 				}
 			}
-			if err := database.ConfirmEmailSubscriber(svr.Conn, token); err != nil {
+			if _, err := database.EmailSubscribers(
+				database.EmailSubscriberWhere.Token.EQ(token),
+			).UpdateAllG(r.Context(), database.M{
+				database.EmailSubscriberColumns.ConfirmedAt: time.Now(),
+			}); err != nil {
 				svr.Log(err, "unable to confirm subscriber using token "+token)
 			}
 			svr.Redirect(w, r, http.StatusMovedPermanently, "/profile/home")
@@ -2078,7 +2163,12 @@ func StripePaymentConfirmationWebookHandler(svr server.Server, jobRepo *job.Repo
 			return
 		}
 		if sess != nil {
-			affectedRows, err := database.SaveSuccessfulPayment(svr.Conn, sess.ID)
+			affectedRows, err := database.PurchaseEvents(
+				database.PurchaseEventWhere.StripeSessionID.EQ(sess.ID),
+				database.PurchaseEventWhere.CompletedAt.IsNull(),
+			).UpdateAllG(req.Context(), database.M{
+				database.PurchaseEventColumns.CompletedAt: time.Now(),
+			})
 			if err != nil {
 				svr.Log(err, "error while saving successful payment")
 				svr.JSON(w, http.StatusBadRequest, nil)
@@ -2095,7 +2185,9 @@ func StripePaymentConfirmationWebookHandler(svr server.Server, jobRepo *job.Repo
 				svr.JSON(w, http.StatusBadRequest, nil)
 				return
 			}
-			purchaseEvent, err := database.GetPurchaseEventBySessionID(svr.Conn, sess.ID)
+			purchaseEvent, err := database.PurchaseEvents(
+				database.PurchaseEventWhere.StripeSessionID.EQ(sess.ID),
+			).OneG(req.Context())
 			if err != nil {
 				svr.Log(errors.New("unable to find purchase event by stripe session id"), fmt.Sprintf("session id %s", sess.ID))
 				svr.JSON(w, http.StatusBadRequest, nil)
@@ -2137,7 +2229,7 @@ func StripePaymentConfirmationWebookHandler(svr server.Server, jobRepo *job.Repo
 func SitemapIndexHandler(svr server.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		index := sitemap.NewSitemapIndex()
-		entries, err := database.GetSitemapIndex(svr.Conn, svr.GetConfig().SiteHost)
+		entries, err := GetSitemapIndex(r.Context(), svr.GetConfig().SiteHost)
 		if err != nil {
 			svr.Log(err, "database.GetSitemapIndex")
 			svr.TEXT(w, http.StatusInternalServerError, "unable to fetch sitemap")
@@ -2146,7 +2238,7 @@ func SitemapIndexHandler(svr server.Server) http.HandlerFunc {
 		for _, e := range entries {
 			index.Add(&sitemap.URL{
 				Loc:     e.Loc,
-				LastMod: &e.LastMod,
+				LastMod: e.Lastmod.Ptr(),
 			})
 		}
 		buf := new(bytes.Buffer)
@@ -2159,6 +2251,51 @@ func SitemapIndexHandler(svr server.Server) http.HandlerFunc {
 	}
 }
 
+func GetSitemapLastMod(ctx context.Context) (null.Time, error) {
+	sitemap, err := database.Sitemaps(
+		qm.OrderBy(database.SitemapColumns.Lastmod+" DESC"),
+		qm.Limit(1),
+	).OneG(ctx)
+	if err != nil {
+		return null.Time{}, err
+	}
+	return sitemap.Lastmod, nil
+}
+
+const SitemapSize = 1000
+
+func GetSitemapEntryCount(ctx context.Context) (int64, error) {
+	return database.Sitemaps().CountG(ctx)
+}
+
+func GetSitemapIndex(ctx context.Context, siteHost string) ([]database.Sitemap, error) {
+	entries := make([]database.Sitemap, 0, 20)
+	count, err := GetSitemapEntryCount(ctx)
+	if err != nil {
+		return entries, err
+	}
+	lastMod, err := GetSitemapLastMod(ctx)
+	if err != nil {
+		return entries, err
+	}
+	slots := math.Ceil(float64(count) / float64(SitemapSize))
+	for i := 1; i <= int(slots); i++ {
+		entries = append(entries, database.Sitemap{
+			Loc:     fmt.Sprintf("https://%s/sitemap-%d.xml", siteHost, i),
+			Lastmod: lastMod,
+		})
+	}
+
+	return entries, nil
+}
+
+func GetSitemapNo(ctx context.Context, n int) (database.SitemapSlice, error) {
+	return database.Sitemaps(
+		qm.Limit(SitemapSize),
+		qm.Offset((n-1)*SitemapSize),
+	).AllG(ctx)
+}
+
 func SitemapHandler(svr server.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
@@ -2169,7 +2306,7 @@ func SitemapHandler(svr server.Server) http.HandlerFunc {
 			svr.TEXT(w, http.StatusBadRequest, "invalid sitemap number")
 			return
 		}
-		entries, err := database.GetSitemapNo(svr.Conn, number)
+		entries, err := GetSitemapNo(r.Context(), number)
 		if err != nil {
 			svr.Log(err, fmt.Sprintf("database.GetSitemapNo %d", number))
 			svr.TEXT(w, http.StatusInternalServerError, "unable to fetch sitemap")
@@ -2179,8 +2316,8 @@ func SitemapHandler(svr server.Server) http.HandlerFunc {
 		for _, e := range entries {
 			sitemapFile.Add(&sitemap.URL{
 				Loc:        e.Loc,
-				LastMod:    &e.LastMod,
-				ChangeFreq: sitemap.ChangeFreq(e.ChangeFreq),
+				LastMod:    e.Lastmod.Ptr(),
+				ChangeFreq: sitemap.ChangeFreq(e.Changefreq.String),
 			})
 		}
 		buf := new(bytes.Buffer)
@@ -2228,13 +2365,13 @@ func SalaryLandingPageLocationPlaceholderHandler(svr server.Server, jobRepo *job
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		location := strings.ReplaceAll(vars["location"], "-", " ")
-		svr.RenderSalaryForLocation(w, r, jobRepo, devRepo, location)
+		svr.RenderSalaryForLocation(r.Context(), w, r, jobRepo, devRepo, location)
 	}
 }
 
 func SalaryLandingPageLocationHandler(svr server.Server, jobRepo *job.Repository, devRepo *developer.Repository, location string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		svr.RenderSalaryForLocation(w, r, jobRepo, devRepo, location)
+		svr.RenderSalaryForLocation(r.Context(), w, r, jobRepo, devRepo, location)
 	}
 }
 
@@ -2285,6 +2422,7 @@ func ApplyForJobPageHandler(svr server.Server, jobRepo *job.Repository) http.Han
 	return func(w http.ResponseWriter, r *http.Request) {
 		// limits upload form size to 5mb
 		maxPdfSize := 5 * 1024 * 1024
+		ctx := r.Context()
 		r.Body = http.MaxBytesReader(w, r.Body, int64(maxPdfSize))
 		cv, header, err := r.FormFile("cv")
 		if err != nil {
@@ -2372,7 +2510,12 @@ func ApplyForJobPageHandler(svr server.Server, jobRepo *job.Repository) http.Han
 					svr.JSON(w, http.StatusBadRequest, nil)
 					return
 				}
-				err = database.AddEmailSubscriber(svr.Conn, emailAddr, k.String())
+				emailEntry := database.EmailSubscriber{
+					Email:     emailAddr,
+					Token:     k.String(),
+					CreatedAt: time.Now(),
+				}
+				err = emailEntry.InsertG(ctx, boil.Infer())
 				if err != nil {
 					svr.Log(err, "unable to add email subscriber to db")
 					svr.JSON(w, http.StatusInternalServerError, nil)
@@ -2408,7 +2551,10 @@ func ApplyForJobPageHandler(svr server.Server, jobRepo *job.Repository) http.Han
 			svr.JSON(w, http.StatusBadRequest, nil)
 			return
 		}
-		retrievedJobPost, applicant, err := jobRepo.GetJobByApplyToken(randomTokenStr)
+		token, err := database.ApplyTokens(
+			qm.Load(database.ApplyTokenRels.Job),
+			database.ApplyTokenWhere.Token.EQ(randomTokenStr),
+		).OneG(ctx)
 		if err != nil {
 			svr.Render(r, w, http.StatusBadRequest, "apply-message.html", map[string]interface{}{
 				"Title":       "Invalid Job Application",
@@ -2418,20 +2564,20 @@ func ApplyForJobPageHandler(svr server.Server, jobRepo *job.Repository) http.Han
 		}
 		err = svr.GetEmail().SendEmailWithPDFAttachment(
 			email.Address{Name: svr.GetEmail().DefaultSenderName(), Email: svr.GetEmail().NoReplySenderAddress()},
-			email.Address{Email: retrievedJobPost.HowToApply},
-			email.Address{Email: applicant.Email},
+			email.Address{Email: token.R.Job.SubscriberEmail},
+			email.Address{Email: token.Email},
 			fmt.Sprintf("New Applicant from %s", svr.GetConfig().SiteName),
 			fmt.Sprintf(
 				"Hi, there is a new applicant for your position on %s: %s with %s - %s (https://%s/job/%s). Applicant's Email: %s. Please find applicant's CV attached below",
 				svr.GetConfig().SiteName,
-				retrievedJobPost.JobTitle,
-				retrievedJobPost.Company,
-				retrievedJobPost.Location,
+				token.R.Job.JobTitle,
+				token.R.Job.Company,
+				token.R.Job.Location,
 				svr.GetConfig().SiteHost,
-				retrievedJobPost.Slug,
-				applicant.Email,
+				token.R.Job.Slug,
+				token.Email,
 			),
-			applicant.Cv,
+			token.CV,
 			"cv.pdf",
 		)
 		if err != nil {
@@ -2456,13 +2602,13 @@ func ApplyForJobPageHandler(svr server.Server, jobRepo *job.Repository) http.Han
 			"Description": svr.StringToHTML(
 				fmt.Sprintf(
 					"Thank you for applying for <b>%s with %s - %s</b><br /><a href=\"https://%s/job/%s\">https://%s/job/%s</a>. <br /><br />Your CV has been forwarded to company HR. <br />Consider joining our Golang Cafe Developer community where companies can apply to you",
-					retrievedJobPost.JobTitle,
-					retrievedJobPost.Company,
-					retrievedJobPost.Location,
+					token.R.Job.JobTitle,
+					token.R.Job.Company,
+					token.R.Job.Location,
 					svr.GetConfig().SiteHost,
-					retrievedJobPost.Slug,
+					token.R.Job.Slug,
 					svr.GetConfig().SiteHost,
-					retrievedJobPost.Slug,
+					token.R.Job.Slug,
 				),
 			),
 		})
@@ -2472,8 +2618,11 @@ func ApplyForJobPageHandler(svr server.Server, jobRepo *job.Repository) http.Han
 func ApplyToJobConfirmation(svr server.Server, jobRepo *job.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		token := vars["token"]
-		jobPost, applicant, err := jobRepo.GetJobByApplyToken(token)
+		pToken := vars["token"]
+		token, err := database.ApplyTokens(
+			qm.Load(database.ApplyTokenRels.Job),
+			database.ApplyTokenWhere.Token.EQ(pToken),
+		).OneG(r.Context())
 		if err != nil {
 			svr.Render(r, w, http.StatusBadRequest, "apply-message.html", map[string]interface{}{
 				"Title":       "Invalid Job Application",
@@ -2483,20 +2632,20 @@ func ApplyToJobConfirmation(svr server.Server, jobRepo *job.Repository) http.Han
 		}
 		err = svr.GetEmail().SendEmailWithPDFAttachment(
 			email.Address{Name: svr.GetEmail().DefaultSenderName(), Email: svr.GetEmail().NoReplySenderAddress()},
-			email.Address{Email: jobPost.HowToApply},
-			email.Address{Email: applicant.Email},
+			email.Address{Email: token.R.Job.SubscriberEmail},
+			email.Address{Email: token.Email},
 			fmt.Sprintf("New Applicant from %s", svr.GetConfig().SiteName),
 			fmt.Sprintf(
 				"Hi, there is a new applicant for your position on %s: %s with %s - %s (https://%s/job/%s). Applicant's Email: %s. Please find applicant's CV attached below",
 				svr.GetConfig().SiteName,
-				jobPost.JobTitle,
-				jobPost.Company,
-				jobPost.Location,
+				token.R.Job.JobTitle,
+				token.R.Job.Company,
+				token.R.Job.Location,
 				svr.GetConfig().SiteHost,
-				jobPost.Slug,
-				applicant.Email,
+				token.R.Job.Slug,
+				token.Email,
 			),
-			applicant.Cv,
+			token.CV,
 			"cv.pdf",
 		)
 		if err != nil {
@@ -2507,7 +2656,8 @@ func ApplyToJobConfirmation(svr server.Server, jobRepo *job.Repository) http.Han
 			})
 			return
 		}
-		err = jobRepo.ConfirmApplyToJob(token)
+		token.ConfirmedAt = null.TimeFrom(time.Now())
+		_, err = token.UpdateG(r.Context(), boil.Whitelist(database.ApplyTokenColumns.ConfirmedAt))
 		if err != nil {
 			svr.Log(err, fmt.Sprintf("unable to update apply_token with successfull application for token %s", token))
 			svr.Render(r, w, http.StatusBadRequest, "apply-message.html", map[string]interface{}{
@@ -2521,13 +2671,13 @@ func ApplyToJobConfirmation(svr server.Server, jobRepo *job.Repository) http.Han
 			"Description": svr.StringToHTML(
 				fmt.Sprintf(
 					"Thank you for applying for <b>%s with %s - %s</b><br /><a href=\"https://%s/job/%s\">https://%s/job/%s</a>. <br /><br />Your CV has been forwarded to company HR. <br />Consider joining our Golang Cafe Developer community where companies can apply to you",
-					jobPost.JobTitle,
-					jobPost.Company,
-					jobPost.Location,
+					token.R.Job.JobTitle,
+					token.R.Job.Company,
+					token.R.Job.Location,
 					svr.GetConfig().SiteHost,
-					jobPost.Slug,
+					token.R.Job.Slug,
 					svr.GetConfig().SiteHost,
-					jobPost.Slug,
+					token.R.Job.Slug,
 				),
 			),
 		})
@@ -2596,7 +2746,9 @@ func SubmitJobPostPaymentUpsellPageHandler(svr server.Server, jobRepo *job.Repos
 			return
 		}
 		jobRq.PlanDuration = planDuration
-		jobID, err := jobRepo.JobPostIDByToken(jobRq.Token)
+		editToken, err := database.EditTokens(
+			database.EditTokenWhere.Token.EQ(jobRq.Token),
+		).OneG(r.Context())
 		if err != nil {
 			svr.Log(err, fmt.Sprintf("unable to find job by token %s", jobRq.Token))
 			svr.JSON(w, http.StatusBadRequest, nil)
@@ -2623,14 +2775,15 @@ func SubmitJobPostPaymentUpsellPageHandler(svr server.Server, jobRepo *job.Repos
 		if err != nil {
 			svr.Log(err, "unable to send email to admin while upgrading job ad")
 		}
-		err = database.InitiatePaymentEvent(
-			svr.Conn,
-			sess.ID,
-			planId,
-			jobRq.Email,
-			jobID,
-		)
+		purchaseEvent := &database.PurchaseEvent{
+			StripeSessionID: sess.ID,
+			Email:           jobRq.Email,
+			PlanID:          planId,
+			JobID:           editToken.JobID,
+			CreatedAt:       time.Now(),
+		}
 
+		err = purchaseEvent.InsertG(r.Context(), boil.Infer())
 		if err != nil {
 			svr.Log(err, "unable to save payment initiated event")
 		}
@@ -2647,17 +2800,41 @@ func SubmitJobPostPageHandler(svr server.Server, jobRepo *job.Repository, paymen
 			svr.JSON(w, http.StatusBadRequest, nil)
 			return
 		}
-		jobID, err := jobRepo.SaveDraft(jobRq)
+		jobID, err := ksuid.NewRandom()
+		if err != nil {
+			svr.Log(err, fmt.Sprintf("unable to generate unique job id: %#v", jobRq))
+			svr.JSON(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		expiration := null.TimeFrom(time.Now().AddDate(0, 0, 365*10))
+		jobDraft := &database.Job{
+			ID:                              jobID.String(),
+			JobTitle:                        jobRq.JobTitle,
+			JobCategory:                     jobRq.JobCategory,
+			Company:                         jobRq.Company,
+			Location:                        jobRq.Location,
+			SalaryRange:                     jobRq.SalaryRange,
+			JobType:                         jobRq.JobType,
+			ApplicationLink:                 jobRq.ApplicationLink,
+			Description:                     jobRq.Description,
+			CreatedAt:                       time.Now().UTC(),
+			URLID:                           int(time.Now().UTC().Unix()),
+			Slug:                            null.StringFrom(slug.Make(fmt.Sprintf("%s %s %d", jobRq.JobTitle, jobRq.Company, time.Now().UTC().Unix()))),
+			CompanyIconImageID:              null.StringFrom(jobRq.CompanyIconID),
+			BlogEligibilityExpiredAt:        expiration,
+			CompanyPageEligibilityExpiredAt: expiration,
+			FrontPageEligibilityExpiredAt:   expiration,
+			NewsletterEligibilityExpiredAt:  expiration,
+			PlanExpiredAt:                   expiration,
+			SocialMediaEligibilityExpiredAt: expiration,
+		}
+		err = jobDraft.InsertG(r.Context(), boil.Infer())
 		if err != nil {
 			svr.Log(err, fmt.Sprintf("unable to save job request: %#v", jobRq))
 			svr.JSON(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		if jobID == 0 {
-			svr.Log(err, fmt.Sprintf("unable to save job request: %#v", jobRq))
-			svr.JSON(w, http.StatusBadRequest, "unable to save job request invalid job returned")
-			return
-		}
+
 		k, err := ksuid.NewRandom()
 		if err != nil {
 			svr.Log(err, "unable to generate unique token")
@@ -2676,9 +2853,12 @@ func SubmitJobPostPageHandler(svr server.Server, jobRepo *job.Repository, paymen
 			svr.JSON(w, http.StatusBadRequest, "unbale to assert token value as string")
 			return
 		}
-		err = jobRepo.SaveTokenForJob(randomTokenStr, jobID)
+		err = jobDraft.AddEditTokensG(r.Context(), true, &database.EditToken{
+			Token:     randomTokenStr,
+			CreatedAt: time.Now().UTC(),
+		})
 		if err != nil {
-			svr.Log(err, "unbale to generate token")
+			svr.Log(err, "unable to generate token")
 			svr.JSON(w, http.StatusBadRequest, err.Error())
 			return
 		}
@@ -2703,13 +2883,14 @@ func SubmitJobPostPageHandler(svr server.Server, jobRepo *job.Repository, paymen
 			svr.Log(err, "unable to send email to admin while posting job ad")
 		}
 		if sess.ID != "" {
-			err = database.InitiatePaymentEvent(
-				svr.Conn,
-				sess.ID,
-				planPriceID,
-				jobRq.Email,
-				jobID,
-			)
+			purchaseEvent := &database.PurchaseEvent{
+				StripeSessionID: sess.ID,
+				Email:           jobRq.Email,
+				PlanID:          planPriceID,
+				JobID:           jobID.String(),
+				CreatedAt:       time.Now(),
+			}
+			err = purchaseEvent.InsertG(r.Context(), boil.Infer())
 			if err != nil {
 				svr.Log(err, "unable to save payment initiated event")
 			}
@@ -2724,7 +2905,7 @@ func RetrieveMediaPageHandler(svr server.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		mediaID := vars["id"]
-		media, err := database.GetMediaByID(svr.Conn, mediaID)
+		media, err := database.FindImageG(r.Context(), mediaID)
 		if err != nil {
 			svr.Log(err, fmt.Sprintf("unable to retrieve media by ID: '%s'", mediaID))
 			svr.MEDIA(w, http.StatusNotFound, media.Bytes, media.MediaType)
@@ -2897,7 +3078,12 @@ func UpdateMediaPageHandler(svr server.Server) http.HandlerFunc {
 			svr.Log(errors.New("content type not supported for encoding"), fmt.Sprintf("content type %s not supported for encoding", contentType))
 			svr.JSON(w, http.StatusInternalServerError, nil)
 		}
-		err = database.UpdateMedia(svr.Conn, database.Media{Bytes: cutImageBytes.Bytes(), MediaType: contentType}, mediaID)
+		_, err = database.Images(
+			database.ImageWhere.ID.EQ(mediaID),
+		).UpdateAllG(r.Context(), database.M{
+			database.ImageColumns.Bytes:     cutImageBytes.Bytes(),
+			database.ImageColumns.MediaType: contentType,
+		})
 		if err != nil {
 			svr.Log(err, "unable to update media image to db")
 			svr.JSON(w, http.StatusInternalServerError, nil)
@@ -2996,7 +3182,18 @@ func SaveMediaPageHandler(svr server.Server) http.HandlerFunc {
 			svr.Log(errors.New("content type not supported for encoding"), fmt.Sprintf("content type %s not supported for encoding", contentType))
 			svr.JSON(w, http.StatusInternalServerError, nil)
 		}
-		id, err := database.SaveMedia(svr.Conn, database.Media{Bytes: cutImageBytes.Bytes(), MediaType: contentType})
+		id, err := ksuid.NewRandom()
+		if err != nil {
+			svr.Log(err, "unable to generate ksuid for media")
+			svr.JSON(w, http.StatusInternalServerError, nil)
+			return
+		}
+		media := database.Image{
+			ID:        id.String(),
+			Bytes:     cutImageBytes.Bytes(),
+			MediaType: contentType,
+		}
+		err = media.InsertG(r.Context(), boil.Infer())
 		if err != nil {
 			svr.Log(err, "unable to save media image to db")
 			svr.JSON(w, http.StatusInternalServerError, nil)
@@ -3173,7 +3370,7 @@ func TrackJobClickoutAndRedirectToJobPage(svr server.Server, jobRepo *job.Reposi
 			svr.JSON(w, http.StatusOK, nil)
 			return
 		}
-		svr.Redirect(w, r, http.StatusTemporaryRedirect, jobPost.HowToApply)
+		svr.Redirect(w, r, http.StatusTemporaryRedirect, jobPost.ApplicationLink)
 	}
 }
 
@@ -3183,58 +3380,83 @@ func EditJobViewPageHandler(svr server.Server, jobRepo *job.Repository) http.Han
 		token := vars["token"]
 		isCallback := r.URL.Query().Get("callback")
 		paymentSuccess := r.URL.Query().Get("payment")
-		jobID, err := jobRepo.JobPostIDByToken(token)
+		editToken, err := database.EditTokens(
+			qm.Load(
+				database.EditTokenRels.Job,
+				qm.Load(database.JobRels.JobEvents),
+				qm.Load(database.JobRels.PurchaseEvents),
+			),
+			database.EditTokenWhere.Token.EQ(token),
+		).OneG(r.Context())
 		if err != nil {
 			svr.Log(err, fmt.Sprintf("unable to find job post ID by token: %s", token))
 			svr.JSON(w, http.StatusNotFound, nil)
 			return
 		}
-		jobPost, err := jobRepo.JobPostByIDForEdit(jobID)
-		if err != nil || jobPost == nil {
-			svr.Log(err, fmt.Sprintf("unable to retrieve job by ID %d", jobID))
-			svr.JSON(w, http.StatusNotFound, fmt.Sprintf("Job for %s/edit/%s not found", svr.GetConfig().SiteHost, token))
-			return
-		}
-		clickoutCount, err := jobRepo.GetClickoutCountForJob(jobID)
+		clickoutCount, err := editToken.R.Job.JobEvents(
+			database.JobEventWhere.EventType.EQ("clickout"),
+		).CountG(r.Context())
 		if err != nil {
-			svr.Log(err, fmt.Sprintf("unable to retrieve job clickout count for job id %d", jobID))
+			svr.Log(err, fmt.Sprintf("unable to retrieve job clickout count for job id %d", editToken.JobID))
 		}
-		viewCount, err := jobRepo.GetViewCountForJob(jobID)
+		viewCount, err := editToken.R.Job.JobEvents(
+			database.JobEventWhere.EventType.EQ("page_view"),
+		).CountG(r.Context())
 		if err != nil {
-			svr.Log(err, fmt.Sprintf("unable to retrieve job view count for job id %d", jobID))
+			svr.Log(err, fmt.Sprintf("unable to retrieve job view count for job id %d", editToken.JobID))
 		}
 		conversionRate := ""
 		if clickoutCount > 0 && viewCount > 0 {
 			conversionRate = fmt.Sprintf("%.2f", float64(float64(clickoutCount)/float64(viewCount)*100))
 		}
-		purchaseEvents, err := database.GetPurchaseEvents(svr.Conn, jobID)
+		stats, err := GetStatsForJob(svr.Conn, editToken.JobID)
 		if err != nil {
-			svr.Log(err, fmt.Sprintf("unable to retrieve job payment events for job id %d", jobID))
-		}
-		stats, err := jobRepo.GetStatsForJob(jobID)
-		if err != nil {
-			svr.Log(err, fmt.Sprintf("unable to retrieve stats for job id %d", jobID))
+			svr.Log(err, fmt.Sprintf("unable to retrieve stats for job id %s", editToken.JobID))
 		}
 		statsSet, err := json.Marshal(stats)
 		if err != nil {
-			svr.Log(err, fmt.Sprintf("unable to marshal stats for job id %d", jobID))
+			svr.Log(err, fmt.Sprintf("unable to marshal stats for job id %s", editToken.JobID))
 		}
 		svr.Render(r, w, http.StatusOK, "edit.html", map[string]interface{}{
-			"Job":                        jobPost,
-			"Stats":                      string(statsSet),
-			"Purchases":                  purchaseEvents,
-			"JobPerksEscaped":            svr.JSEscapeString(jobPost.Perks),
-			"JobInterviewProcessEscaped": svr.JSEscapeString(jobPost.InterviewProcess),
-			"JobDescriptionEscaped":      svr.JSEscapeString(jobPost.JobDescription),
-			"Token":                      token,
-			"ViewCount":                  viewCount,
-			"ClickoutCount":              clickoutCount,
-			"ConversionRate":             conversionRate,
-			"IsCallback":                 isCallback,
-			"PaymentSuccess":             paymentSuccess,
-			"StripePublishableKey":       svr.GetConfig().StripePublishableKey,
+			"Job":                   editToken.R.Job,
+			"Stats":                 string(statsSet),
+			"Purchases":             editToken.R.Job.R.PurchaseEvents,
+			"JobDescriptionEscaped": svr.JSEscapeString(editToken.R.Job.Description),
+			"Token":                 token,
+			"ViewCount":             viewCount,
+			"ClickoutCount":         clickoutCount,
+			"ConversionRate":        conversionRate,
+			"IsCallback":            isCallback,
+			"PaymentSuccess":        paymentSuccess,
+			"StripePublishableKey":  svr.GetConfig().StripePublishableKey,
 		})
 	}
+}
+
+type JobStat struct {
+	Date      string `json:"date"`
+	Clickouts int    `json:"clickouts"`
+	PageViews int    `json:"pageviews"`
+}
+
+func GetStatsForJob(db *sql.DB, jobID string) ([]JobStat, error) {
+	var stats []JobStat
+	rows, err := db.Query(`SELECT COUNT(*) FILTER (WHERE event_type = 'clickout') AS clickout, COUNT(*) FILTER (WHERE event_type = 'page_view') AS pageview, TO_CHAR(DATE_TRUNC('day', created_at), 'YYYY-MM-DD') FROM job_event WHERE job_id = $1 GROUP BY DATE_TRUNC('day', created_at) ORDER BY DATE_TRUNC('day', created_at) ASC`, jobID)
+	if err == sql.ErrNoRows {
+		return stats, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		var s JobStat
+		if err := rows.Scan(&s.Clickouts, &s.PageViews, &s.Date); err != nil {
+			return stats, err
+		}
+		stats = append(stats, s)
+	}
+
+	return stats, nil
 }
 
 func ManageJobBySlugViewPageHandler(svr server.Server, jobRepo *job.Repository) http.HandlerFunc {

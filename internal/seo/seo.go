@@ -1,6 +1,7 @@
 package seo
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/url"
@@ -44,38 +45,38 @@ func BlogPages(blogRepo *blog.Repository) ([]BlogPost, error) {
 	return posts, nil
 }
 
-func GeneratePostAJobSEOLandingPages(conn *sql.DB, siteJobCategory string) ([]string, error) {
+func GeneratePostAJobSeoLandingPages(ctx context.Context, conn *sql.Tx, siteJobCategory string) ([]string, error) {
 	siteJobCategory = strings.Title(siteJobCategory)
 	var seoLandingPages []string
-	locs, err := database.GetSEOLocations(conn)
+	locs, err := database.SeoLocations().All(ctx, conn)
 	if err != nil {
 		return seoLandingPages, err
 	}
 	for _, loc := range locs {
-		seoLandingPages = appendPostAJobSEOLandingPageForLocation(siteJobCategory, seoLandingPages, loc.Name)
+		seoLandingPages = appendPostAJobSeoLandingPageForLocation(siteJobCategory, seoLandingPages, loc.Name)
 	}
 
 	return seoLandingPages, nil
 }
 
-func GenerateSalarySEOLandingPages(conn *sql.DB, siteJobCategory string) ([]string, error) {
+func GenerateSalarySeoLandingPages(ctx context.Context, conn *sql.Tx, siteJobCategory string) ([]string, error) {
 	siteJobCategory = strings.Title(siteJobCategory)
 	var landingPages []string
-	locs, err := database.GetSEOLocations(conn)
+	locs, err := database.SeoLocations().All(ctx, conn)
 	if err != nil {
 		return landingPages, err
 	}
 	for _, loc := range locs {
-		landingPages = appendSalarySEOLandingPageForLocation(siteJobCategory, landingPages, loc.Name)
+		landingPages = appendSalarySeoLandingPageForLocation(siteJobCategory, landingPages, loc.Name)
 	}
 
 	return landingPages, nil
 }
 
-func GenerateCompaniesLandingPages(conn *sql.DB, siteJobCategory string) ([]string, error) {
+func GenerateCompaniesLandingPages(ctx context.Context, conn *sql.Tx, siteJobCategory string) ([]string, error) {
 	siteJobCategory = strings.Title(siteJobCategory)
 	var landingPages []string
-	locs, err := database.GetSEOLocations(conn)
+	locs, err := database.SeoLocations().All(ctx, conn)
 	if err != nil {
 		return landingPages, err
 	}
@@ -86,7 +87,7 @@ func GenerateCompaniesLandingPages(conn *sql.DB, siteJobCategory string) ([]stri
 	return landingPages, nil
 }
 
-func appendSalarySEOLandingPageForLocation(siteJobCategory string, landingPages []string, loc string) []string {
+func appendSalarySeoLandingPageForLocation(siteJobCategory string, landingPages []string, loc string) []string {
 	tmpl := `%s-Developer-Salary-%s`
 	if strings.ToLower(loc) == "remote" {
 		return append(landingPages, fmt.Sprintf(`Remote-%s-Developer-Salary`, siteJobCategory))
@@ -94,7 +95,7 @@ func appendSalarySEOLandingPageForLocation(siteJobCategory string, landingPages 
 	return append(landingPages, fmt.Sprintf(tmpl, siteJobCategory, strings.ReplaceAll(loc, " ", "-")))
 }
 
-func appendPostAJobSEOLandingPageForLocation(siteJobCategory string, seoLandingPages []string, loc string) []string {
+func appendPostAJobSeoLandingPageForLocation(siteJobCategory string, seoLandingPages []string, loc string) []string {
 	tmpl := `Hire-%s-Developers-In-%s`
 	if strings.ToLower(loc) == "remote" {
 		return append(seoLandingPages, fmt.Sprintf(`Hire-Remote-%s-Developers`, siteJobCategory))
@@ -110,12 +111,12 @@ func appendCompaniesLandingPagesForLocation(siteJobCategory string, landingPages
 	return append(landingPages, fmt.Sprintf(tmpl, siteJobCategory, strings.ReplaceAll(loc, " ", "-")))
 }
 
-func appendSearchSEOSalaryLandingPageForLocation(siteJobCategory string, seoLandingPages []database.SEOLandingPage, loc database.SEOLocation) []database.SEOLandingPage {
+func appendSearchSEOSalaryLandingPageForLocation(siteJobCategory string, seoLandingPages []database.SeoLandingPage, loc *database.SeoLocation) []database.SeoLandingPage {
 	salaryBands := []string{"50000", "10000", "150000", "200000"}
-	tmp := make([]database.SEOLandingPage, 0, len(salaryBands))
+	tmp := make([]database.SeoLandingPage, 0, len(salaryBands))
 	if loc.Name == "" {
 		for _, salaryBand := range salaryBands {
-			tmp = append(tmp, database.SEOLandingPage{
+			tmp = append(tmp, database.SeoLandingPage{
 				URI: fmt.Sprintf("%s-Jobs-Paying-%s-USD-year", siteJobCategory, salaryBand),
 			})
 		}
@@ -123,12 +124,12 @@ func appendSearchSEOSalaryLandingPageForLocation(siteJobCategory string, seoLand
 		return append(seoLandingPages, tmp...)
 	}
 
-	if loc.Population < 1000000 {
+	if loc.Population.Int < 1000000 {
 		return seoLandingPages
 	}
 
 	for _, salaryBand := range salaryBands {
-		tmp = append(tmp, database.SEOLandingPage{
+		tmp = append(tmp, database.SeoLandingPage{
 			URI: fmt.Sprintf("%s-Jobs-In-%s-Paying-%s-USD-year", siteJobCategory, url.PathEscape(strings.ReplaceAll(loc.Name, " ", "-")), salaryBand),
 		})
 	}
@@ -136,26 +137,26 @@ func appendSearchSEOSalaryLandingPageForLocation(siteJobCategory string, seoLand
 	return append(seoLandingPages, tmp...)
 }
 
-func GenerateSearchSEOLandingPages(conn *sql.DB, siteJobCategory string) ([]database.SEOLandingPage, error) {
+func GenerateSearchSeoLandingPages(ctx context.Context, conn *sql.Tx, siteJobCategory string) ([]database.SeoLandingPage, error) {
 	siteJobCategory = strings.Title(siteJobCategory)
-	var seoLandingPages []database.SEOLandingPage
-	locs, err := database.GetSEOLocations(conn)
+	var seoLandingPages []database.SeoLandingPage
+	locs, err := database.SeoLocations().All(ctx, conn)
 	if err != nil {
 		return seoLandingPages, err
 	}
-	skills, err := database.GetSEOskills(conn)
+	skills, err := database.SeoSkills().All(ctx, conn)
 	if err != nil {
 		return seoLandingPages, err
 	}
 
-	seoLandingPages = appendSearchSEOSalaryLandingPageForLocation(siteJobCategory, seoLandingPages, database.SEOLocation{})
+	seoLandingPages = appendSearchSEOSalaryLandingPageForLocation(siteJobCategory, seoLandingPages, &database.SeoLocation{})
 
 	for _, loc := range locs {
-		seoLandingPages = appendSearchSEOLandingPageForLocationAndSkill(siteJobCategory, seoLandingPages, loc, database.SEOSkill{})
+		seoLandingPages = appendSearchSeoLandingPageForLocationAndSkill(siteJobCategory, seoLandingPages, loc, &database.SeoSkill{})
 		seoLandingPages = appendSearchSEOSalaryLandingPageForLocation(siteJobCategory, seoLandingPages, loc)
 	}
 	for _, skill := range skills {
-		seoLandingPages = appendSearchSEOLandingPageForLocationAndSkill(siteJobCategory, seoLandingPages, database.SEOLocation{}, skill)
+		seoLandingPages = appendSearchSeoLandingPageForLocationAndSkill(siteJobCategory, seoLandingPages, &database.SeoLocation{}, skill)
 	}
 
 	return seoLandingPages, nil
@@ -175,10 +176,10 @@ func GenerateDevelopersSkillLandingPages(repo *developer.Repository, siteJobCate
 	return landingPages, nil
 }
 
-func GenerateDevelopersLocationPages(conn *sql.DB, siteJobCategory string) ([]string, error) {
+func GenerateDevelopersLocationPages(ctx context.Context, siteJobCategory string) ([]string, error) {
 	siteJobCategory = strings.Title(siteJobCategory)
 	var landingPages []string
-	locs, err := database.GetSEOLocations(conn)
+	locs, err := database.SeoLocations().AllG(context.Background())
 	if err != nil {
 		return landingPages, err
 	}
@@ -215,7 +216,7 @@ func GenerateCompanyProfileLandingPages(companyRepo *company.Repository) ([]stri
 	return landingPages, nil
 }
 
-func appendSearchSEOLandingPageForLocationAndSkill(siteJobCategory string, seoLandingPages []database.SEOLandingPage, loc database.SEOLocation, skill database.SEOSkill) []database.SEOLandingPage {
+func appendSearchSeoLandingPageForLocationAndSkill(siteJobCategory string, seoLandingPages []database.SeoLandingPage, loc *database.SeoLocation, skill *database.SeoSkill) []database.SeoLandingPage {
 	templateBoth := siteJobCategory + `-%s-Jobs-In-%s`
 	templateSkill := siteJobCategory + `-%s-Jobs`
 	templateLoc := siteJobCategory + `-Jobs-In-%s`
@@ -227,7 +228,7 @@ func appendSearchSEOLandingPageForLocationAndSkill(siteJobCategory string, seoLa
 
 	// Skill only
 	if loc.Name == "" {
-		return append(seoLandingPages, database.SEOLandingPage{
+		return append(seoLandingPages, database.SeoLandingPage{
 			URI:   fmt.Sprintf(templateSkill, url.PathEscape(skill.Name)),
 			Skill: skill.Name,
 		})
@@ -236,12 +237,12 @@ func appendSearchSEOLandingPageForLocationAndSkill(siteJobCategory string, seoLa
 	// Remote is special case
 	if loc.Name == "Remote" {
 		if skill.Name != "" {
-			return append(seoLandingPages, database.SEOLandingPage{
+			return append(seoLandingPages, database.SeoLandingPage{
 				URI:      fmt.Sprintf(templateRemoteBoth, url.PathEscape(skill.Name)),
 				Location: loc.Name,
 			})
 		} else {
-			return append(seoLandingPages, database.SEOLandingPage{
+			return append(seoLandingPages, database.SeoLandingPage{
 				URI:      templateRemoteLoc,
 				Location: loc.Name,
 				Skill:    skill.Name,
@@ -251,14 +252,14 @@ func appendSearchSEOLandingPageForLocationAndSkill(siteJobCategory string, seoLa
 
 	// Location only
 	if skill.Name == "" {
-		return append(seoLandingPages, database.SEOLandingPage{
+		return append(seoLandingPages, database.SeoLandingPage{
 			URI:      fmt.Sprintf(templateLoc, url.PathEscape(loc.Name)),
 			Location: loc.Name,
 		})
 	}
 
 	// Both
-	return append(seoLandingPages, database.SEOLandingPage{
+	return append(seoLandingPages, database.SeoLandingPage{
 		URI:      fmt.Sprintf(templateBoth, url.PathEscape(skill.Name), url.PathEscape(loc.Name)),
 		Skill:    skill.Name,
 		Location: loc.Name,

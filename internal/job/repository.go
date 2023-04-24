@@ -25,19 +25,6 @@ func (r *Repository) TrackJobView(job *JobPost) error {
 	return err
 }
 
-func (r *Repository) GetJobByApplyToken(token string) (JobPost, Applicant, error) {
-	res := r.db.QueryRow(`SELECT t.cv, t.email, j.id, j.job_title, j.company, salary_range, location, slug, j.external_id
-	FROM job j JOIN apply_token t ON t.job_id = j.id AND t.token = $1 WHERE j.approved_at IS NOT NULL AND t.created_at < NOW() + INTERVAL '3 days' AND t.confirmed_at IS NULL`, token)
-	job := JobPost{}
-	applicant := Applicant{}
-	err := res.Scan(&applicant.Cv, &applicant.Email, &job.ID, &job.JobTitle, &job.Company, &job.SalaryRange, &job.Location, &job.Slug, &job.ExternalID)
-	if err != nil {
-		return JobPost{}, applicant, err
-	}
-
-	return job, applicant, nil
-}
-
 func (r *Repository) TrackJobClickout(jobID int) error {
 	stmt := `INSERT INTO job_event (event_type, job_id, created_at) VALUES ($1, $2, NOW())`
 	_, err := r.db.Exec(stmt, jobEventClickout, jobID)
