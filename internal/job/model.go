@@ -59,6 +59,7 @@ type JobRq struct {
 	SalaryRange     string `json:"salary_range"`
 	JobType         string `json:"job_type"`
 	ApplicationLink string `json:"application_link"`
+	SubscriberEmail string `json:"subscriber_email"`
 	Description     string `json:"job_description"`
 	CompanyIconID   string `json:"company_icon_id,omitempty"`
 	Email           string `json:"email"`
@@ -75,21 +76,16 @@ type JobRqUpsell struct {
 }
 
 type JobRqUpdate struct {
-	JobTitle         string `json:"job_title"`
-	Location         string `json:"job_location"`
-	Company          string `json:"company_name"`
-	CompanyURL       string `json:"company_url"`
-	SalaryMin        string `json:"salary_min"`
-	SalaryMax        string `json:"salary_max"`
-	SalaryCurrency   string `json:"salary_currency"`
-	Description      string `json:"job_description"`
-	HowToApply       string `json:"how_to_apply"`
-	Perks            string `json:"perks"`
-	InterviewProcess string `json:"interview_process"`
-	Email            string `json:"company_email"`
-	Token            string `json:"token"`
-	CompanyIconID    string `json:"company_icon_id,omitempty"`
-	SalaryPeriod     string `json:"salary_period"`
+	JobTitle        string `json:"job_title"`
+	JobCategory     string `json:"job_category"`
+	Company         string `json:"company_name"`
+	Location        string `json:"job_location"`
+	SalaryRange     string `json:"salary_range"`
+	JobType         string `json:"job_type"`
+	ApplicationLink string `json:"application_link"`
+	Description     string `json:"job_description"`
+	Token           string `json:"token"`
+	CompanyIconID   string `json:"company_icon_id,omitempty"`
 }
 
 type JobPost struct {

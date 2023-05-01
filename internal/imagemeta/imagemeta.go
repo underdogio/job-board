@@ -8,9 +8,9 @@ import (
 	"io"
 	"path/filepath"
 
-	"github.com/golang-cafe/job-board/internal/job"
 	"github.com/fogleman/gg"
 	"github.com/pkg/errors"
+	"github.com/underdogio/job-board/internal/database"
 )
 
 const (
@@ -18,7 +18,7 @@ const (
 	outputFilename          = "output.jpg"
 )
 
-func GenerateImageForJob(jobPost job.JobPost) (io.ReadWriter, error) {
+func GenerateImageForJob(jobPost *database.Job) (io.ReadWriter, error) {
 	dc := gg.NewContext(1200, 628)
 	backgroundImage, err := gg.LoadImage(backgroundImageFilename)
 	w := bytes.NewBuffer([]byte{})

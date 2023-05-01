@@ -2,7 +2,6 @@ package server
 
 import (
 	"bytes"
-	"context"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/gob"
@@ -10,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -20,19 +18,20 @@ import (
 
 	stdtemplate "html/template"
 
-	"github.com/aclements/go-moremath/stats"
 	"github.com/dustin/go-humanize"
-	"github.com/golang-cafe/job-board/internal/company"
-	"github.com/golang-cafe/job-board/internal/config"
-	"github.com/golang-cafe/job-board/internal/database"
-	"github.com/golang-cafe/job-board/internal/developer"
-	"github.com/golang-cafe/job-board/internal/email"
-	"github.com/golang-cafe/job-board/internal/job"
-	"github.com/golang-cafe/job-board/internal/middleware"
-	"github.com/golang-cafe/job-board/internal/template"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
+	"github.com/underdogio/job-board/internal/company"
+	"github.com/underdogio/job-board/internal/config"
+	"github.com/underdogio/job-board/internal/database"
+	"github.com/underdogio/job-board/internal/email"
+	"github.com/underdogio/job-board/internal/job"
+	"github.com/underdogio/job-board/internal/middleware"
+	"github.com/underdogio/job-board/internal/repositories"
+	"github.com/underdogio/job-board/internal/template"
+	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 
 	"github.com/allegro/bigcache/v3"
 )
@@ -105,7 +104,8 @@ func (s Server) GetConfig() config.Config {
 	return s.cfg
 }
 
-func (s Server) RenderSalaryForLocation(ctx context.Context, w http.ResponseWriter, r *http.Request, jobRepo *job.Repository, devRepo *developer.Repository, location string) {
+/*
+func (s Server) RenderSalaryForLocation(ctx context.Context, w http.ResponseWriter, r *http.Request,  location string) {
 	loc, err := database.FindSeoLocationG(ctx, location)
 	complimentaryRemote := false
 	if err != nil {
@@ -175,17 +175,17 @@ func (s Server) RenderSalaryForLocation(ctx context.Context, w http.ResponseWrit
 			}
 		}()
 	}
-	jobPosts, err := jobRepo.TopNJobsByLocation(loc.Name, 3)
+	jobPosts, err := repositories.TopNJobsByLocation(loc.Name, 3)
 	if err != nil {
-		s.Log(err, "jobRepo.TopNJobsByLocation")
+		s.Log(err, "repositories.TopNJobsByLocation")
 	}
 	if len(jobPosts) == 0 {
-		jobPosts, err = jobRepo.TopNJobsByLocation("Remote", 3)
+		jobPosts, err = repositories.TopNJobsByLocation("Remote", 3)
 		if err != nil {
-			s.Log(err, "jobRepo.TopNJobsByLocation")
+			s.Log(err, "repositories.TopNJobsByLocation")
 		}
 	}
-	lastJobPosted, err := jobRepo.LastJobPosted()
+	lastJobPosted, err := repositories.LastJobPosted()
 	if err != nil {
 		s.Log(err, "could not retrieve last job posted at")
 		lastJobPosted = time.Now().AddDate(0, 0, -1)
@@ -195,15 +195,15 @@ func (s Server) RenderSalaryForLocation(ctx context.Context, w http.ResponseWrit
 	if err != nil {
 		s.Log(err, "database.CountEmailSubscribers")
 	}
-	topDevelopers, err := devRepo.GetTopDevelopers(10)
+	topDevelopers, err := repositories.GetTopDevelopers(10)
 	if err != nil {
 		s.Log(err, "unable to get top developers")
 	}
-	topDeveloperSkills, err := devRepo.GetTopDeveloperSkills(7)
+	topDeveloperSkills, err := repositories.GetTopDeveloperSkills(7)
 	if err != nil {
 		s.Log(err, "unable to get top developer skills")
 	}
-	lastDevUpdatedAt, err := devRepo.GetLastDevUpdatedAt()
+	lastDevUpdatedAt, err := repositories.GetLastDevUpdatedAt()
 	if err != nil {
 		s.Log(err, "unable to retrieve last developer joined at")
 	}
@@ -211,15 +211,15 @@ func (s Server) RenderSalaryForLocation(ctx context.Context, w http.ResponseWrit
 	for _, d := range topDevelopers {
 		topDeveloperNames = append(topDeveloperNames, strings.Split(d.Name, " ")[0])
 	}
-	messagesSentLastMonth, err := devRepo.GetDeveloperMessagesSentLastMonth()
+	messagesSentLastMonth, err := repositories.GetDeveloperMessagesSentLastMonth()
 	if err != nil {
 		s.Log(err, "GetDeveloperMessagesSentLastMonth")
 	}
-	devsRegisteredLastMonth, err := devRepo.GetDevelopersRegisteredLastMonth()
+	devsRegisteredLastMonth, err := repositories.GetDevelopersRegisteredLastMonth()
 	if err != nil {
 		s.Log(err, "GetDevelopersRegisteredLastMonth")
 	}
-	devPageViewsLastMonth, err := devRepo.GetDeveloperProfilePageViewsLastMonth()
+	devPageViewsLastMonth, err := repositories.GetDeveloperProfilePageViewsLastMonth()
 	if err != nil {
 		s.Log(err, "GetDeveloperProfilePageViewsLastMonth")
 	}
@@ -263,8 +263,11 @@ func (s Server) RenderSalaryForLocation(ctx context.Context, w http.ResponseWrit
 		"LastDevCreatedAtHumanized":          humanize.Time(lastDevUpdatedAt),
 	})
 }
+*/
 
-func (s Server) RenderPageForLocationAndTag(w http.ResponseWriter, r *http.Request, jobRepo *job.Repository, location, tag, page, salary, currency, htmlView string) {
+var hasBot = regexp.MustCompile(`(?i)(googlebot|bingbot|slurp|baiduspider|duckduckbot|yandexbot|sogou|exabot|facebookexternalhit|facebot|ia_archiver|linkedinbot|python-urllib|python-requests|go-http-client|msnbot|ahrefs)`)
+
+func (s Server) RenderPageForLocationAndTag(w http.ResponseWriter, r *http.Request, location, tag, page, salary, currency, htmlView string) {
 	var validSalary bool
 	for _, band := range s.GetConfig().AvailableSalaryBands {
 		if fmt.Sprintf("%d", band) == salary {
@@ -288,11 +291,6 @@ func (s Server) RenderPageForLocationAndTag(w http.ResponseWriter, r *http.Reque
 		page = "1"
 		showPage = false
 	}
-	salaryInt, err := strconv.Atoi(salary)
-	if err != nil {
-		salaryInt = 0
-	}
-	salaryInt = int(salaryInt)
 	tag = strings.TrimSpace(tag)
 	location = strings.TrimSpace(location)
 	reg, err := regexp.Compile("[^a-zA-Z0-9\\s]+")
@@ -313,7 +311,7 @@ func (s Server) RenderPageForLocationAndTag(w http.ResponseWriter, r *http.Reque
 	if !okMonth || !okWeek {
 		// load and cache last jobs count
 		var err error
-		newJobsLastWeek, newJobsLastMonth, err = jobRepo.NewJobsLastWeekOrMonth()
+		newJobsLastWeek, newJobsLastMonth, err = repositories.NewJobsLastWeekOrMonth(r.Context())
 		if err != nil {
 			s.Log(err, "unable to retrieve new jobs last week last month")
 		}
@@ -342,19 +340,18 @@ func (s Server) RenderPageForLocationAndTag(w http.ResponseWriter, r *http.Reque
 			s.Log(err, "unable to decode cached new jobs last month")
 		}
 	}
-	var pinnedJobs []*job.JobPost
+	var pinnedJobs []*database.Job
 	// only load pinned jobs for main landing page
 	if isLandingPage {
 		pinnedJobsCached, ok := s.CacheGet(CacheKeyPinnedJobs)
 		if !ok {
 			// load and cache jobs
-			pinnedJobs, err = jobRepo.GetPinnedJobs()
+			pinnedJobs, err = repositories.GetPinnedJobs(r.Context())
 			if err != nil {
 				s.Log(err, "unable to get pinned jobs")
 			}
 			for i, j := range pinnedJobs {
-				pinnedJobs[i].JobDescription = string(s.tmpl.MarkdownToHTML(j.JobDescription))
-				pinnedJobs[i].SalaryRange = j.SalaryRange
+				pinnedJobs[i].Description = string(s.tmpl.MarkdownToHTML(j.Description))
 			}
 			buf := &bytes.Buffer{}
 			enc := gob.NewEncoder(buf)
@@ -372,7 +369,7 @@ func (s Server) RenderPageForLocationAndTag(w http.ResponseWriter, r *http.Reque
 			}
 		}
 	}
-	jobsForPage, totalJobCount, err := jobRepo.JobsByQuery(location, tag, pageID, salaryInt, currency, s.cfg.JobsPerPage, !isLandingPage)
+	jobsForPage, totalJobCount, err := repositories.JobsByQuery(r.Context(), location, tag, pageID, salary, currency, s.cfg.JobsPerPage, !isLandingPage)
 	if err != nil {
 		s.Log(err, "unable to get jobs by query")
 		s.JSON(w, http.StatusInternalServerError, "Oops! An internal error has occurred")
@@ -381,9 +378,9 @@ func (s Server) RenderPageForLocationAndTag(w http.ResponseWriter, r *http.Reque
 	var complementaryRemote bool
 	if len(jobsForPage) == 0 {
 		complementaryRemote = true
-		jobsForPage, totalJobCount, err = jobRepo.JobsByQuery("Remote", tag, pageID, salaryInt, currency, s.cfg.JobsPerPage, !isLandingPage)
+		jobsForPage, totalJobCount, err = repositories.JobsByQuery(r.Context(), "Remote", tag, pageID, salary, currency, s.cfg.JobsPerPage, !isLandingPage)
 		if len(jobsForPage) == 0 {
-			jobsForPage, totalJobCount, err = jobRepo.JobsByQuery("Remote", "", pageID, salaryInt, currency, s.cfg.JobsPerPage, !isLandingPage)
+			jobsForPage, totalJobCount, err = repositories.JobsByQuery(r.Context(), "Remote", "", pageID, salary, currency, s.cfg.JobsPerPage, !isLandingPage)
 		}
 	}
 	if err != nil {
@@ -402,11 +399,12 @@ func (s Server) RenderPageForLocationAndTag(w http.ResponseWriter, r *http.Reque
 		pages = append(pages, i)
 	}
 
-	locFromDB := database.Location{}
-	locFromDB.Name = "Remote"
-	locFromDB.Currency = "$"
+	var locFromDB = &database.SeoLocation{
+		Name:     "Remote",
+		Currency: "$",
+	}
 	if location != "" && !strings.EqualFold(location, "remote") {
-		locFromDB, err = database.GetLocation(s.Conn, location)
+		locFromDB, err = database.SeoLocations(database.SeoLocationWhere.Name.EQ(location)).OneG(r.Context())
 		if err != nil {
 			locFromDB.Name = "Remote"
 			locFromDB.Currency = "$"
@@ -415,8 +413,7 @@ func (s Server) RenderPageForLocationAndTag(w http.ResponseWriter, r *http.Reque
 	var minSalary int64 = 1<<63 - 1
 	var maxSalary int64 = 0
 	for i, j := range jobsForPage {
-		jobsForPage[i].JobDescription = string(s.tmpl.MarkdownToHTML(j.JobDescription))
-		jobsForPage[i].SalaryRange = j.SalaryRange
+		jobsForPage[i].Description = string(s.tmpl.MarkdownToHTML(j.Description))
 	}
 
 	ua := r.Header.Get("user-agent")
@@ -425,7 +422,22 @@ func (s Server) RenderPageForLocationAndTag(w http.ResponseWriter, r *http.Reque
 	if len(ips) > 0 && strings.Contains(ref, s.GetConfig().SiteHost) {
 		hashedIP := sha256.Sum256([]byte(ips[0]))
 		go func() {
-			if err := database.TrackSearchEvent(s.Conn, ua, hex.EncodeToString(hashedIP[:]), location, tag, len(jobsForPage), job.SearchTypeJob); err != nil {
+			if hasBot.MatchString(ua) {
+				return
+			}
+			loc := strings.TrimSpace(location)
+			trimmerTag := strings.TrimSpace(tag)
+			if loc == "" && tag == "" {
+				return
+			}
+			searchEvent := database.SearchEvent{
+				SessionID: hex.EncodeToString(hashedIP[:]),
+				Location:  null.StringFrom(loc),
+				Tag:       null.StringFrom(trimmerTag),
+				Results:   len(jobsForPage),
+				Type:      null.StringFrom(job.SearchTypeJob),
+			}
+			if err := searchEvent.InsertG(r.Context(), boil.Infer()); err != nil {
 				fmt.Printf("err while saving event: %s\n", err)
 			}
 		}()
@@ -435,27 +447,34 @@ func (s Server) RenderPageForLocationAndTag(w http.ResponseWriter, r *http.Reque
 	relatedLocations := make([]string, 0)
 	if locFromDB.Name != "Remote" {
 		locationWithCountry = fmt.Sprintf("%s", locFromDB.Name)
-		if locFromDB.Country != "" {
-			locationWithCountry = fmt.Sprintf("%s, %s", locFromDB.Name, locFromDB.Country)
+		if locFromDB.Country.Valid && locFromDB.Country.String != "" {
+			locationWithCountry = fmt.Sprintf("%s, %s", locFromDB.Name, locFromDB.Country.String)
 		}
-		if locFromDB.Region != "" {
-			locationWithCountry = fmt.Sprintf("%s, %s, %s", locFromDB.Name, locFromDB.Region, locFromDB.Country)
+		if locFromDB.Region.Valid && locFromDB.Region.String != "" {
+			locationWithCountry = fmt.Sprintf("%s, %s, %s", locFromDB.Name, locFromDB.Region.String, locFromDB.Country.String)
 		}
-		relatedLocations, err = database.GetRandomLocationsForCountry(s.Conn, locFromDB.Country, 6, strings.Title(location))
-		if err != nil {
-			s.Log(err, fmt.Sprintf("unable to get random locations for country %s", locFromDB.Country))
+		if err := database.SeoLocations(
+			qm.Select(database.SeoLocationColumns.Name),
+			database.SeoLocationWhere.Country.EQ(locFromDB.Country),
+			database.SeoLocationWhere.Name.NEQ(locFromDB.Name),
+			qm.OrderBy(database.SeoLocationColumns.Population+" DESC"),
+			qm.Limit(6),
+		).BindG(r.Context(), relatedLocations); err != nil {
+			s.Log(err, fmt.Sprintf("unable to get random locations for country %s", locFromDB.Country.String))
 		}
 	}
 	if currency == "" {
 		currency = "USD"
 	}
-	lastJobPosted, err := jobRepo.LastJobPosted()
+	lastJobPosted, err := repositories.LastJobPosted(r.Context())
 	if err != nil {
 		s.Log(err, "could not retrieve last job posted at")
 		lastJobPosted = time.Now().AddDate(0, 0, -1)
 	}
 
-	emailSubscribersCount, err := database.CountEmailSubscribers(s.Conn)
+	emailSubscribersCount, err := database.EmailSubscribers(
+		database.EmailSubscriberWhere.ConfirmedAt.IsNotNull(),
+	).CountG(r.Context())
 	if err != nil {
 		s.Log(err, "database.CountEmailSubscribers")
 	}
@@ -468,7 +487,7 @@ func (s Server) RenderPageForLocationAndTag(w http.ResponseWriter, r *http.Reque
 		"LocationFilterWithCountry": locationWithCountry,
 		"LocationFilterURLEnc":      url.PathEscape(strings.Title(location)),
 		"TagFilter":                 tag,
-		"SalaryFilter":              salaryInt,
+		"SalaryFilter":              salary,
 		"CurrencyFilter":            currency,
 		"AvailableCurrencies":       s.GetConfig().AvailableCurrencies,
 		"AvailableSalaryBands":      s.GetConfig().AvailableSalaryBands,
@@ -507,7 +526,7 @@ func textifyJobCount(n int) string {
 	return fmt.Sprintf("%d+", (n/50)*50)
 }
 
-func textifyCompanies(location string, pinnedJobs, jobs []*job.JobPost) string {
+func textifyCompanies(location string, pinnedJobs, jobs []*database.Job) string {
 	if len(pinnedJobs) > 2 && location == "" {
 		jobs = pinnedJobs
 	}
@@ -536,7 +555,7 @@ func textifyGeneric(items []string) string {
 	return ""
 }
 
-func textifyCompanyNames(companies []company.Company, max int) string {
+func textifyCompanyNames(companies []*database.Company, max int) string {
 	switch {
 	case len(companies) == 1:
 		return companies[0].Name
@@ -556,7 +575,7 @@ func textifyCompanyNames(companies []company.Company, max int) string {
 	return ""
 }
 
-func textifyJobTitles(jobs []*job.JobPost) string {
+func textifyJobTitles(jobs []*database.Job) string {
 	switch {
 	case len(jobs) == 1:
 		return jobs[0].JobTitle
@@ -569,16 +588,16 @@ func textifyJobTitles(jobs []*job.JobPost) string {
 	return ""
 }
 
-func (s Server) RenderPageForProfileRegistration(w http.ResponseWriter, r *http.Request, devRepo *developer.Repository, htmlView string) {
-	topDevelopers, err := devRepo.GetTopDevelopers(10)
+func (s Server) RenderPageForProfileRegistration(w http.ResponseWriter, r *http.Request, htmlView string) {
+	topDevelopers, err := repositories.GetTopDevelopers(r.Context(), 10)
 	if err != nil {
 		s.Log(err, "unable to get top developers")
 	}
-	topDeveloperSkills, err := devRepo.GetTopDeveloperSkills(7)
+	topDeveloperSkills, err := repositories.GetTopDeveloperSkills(r.Context(), 7)
 	if err != nil {
 		s.Log(err, "unable to get top developer skills")
 	}
-	lastDevUpdatedAt, err := devRepo.GetLastDevUpdatedAt()
+	lastDevUpdatedAt, err := repositories.GetLastDevUpdatedAt(r.Context())
 	if err != nil {
 		s.Log(err, "unable to retrieve last developer joined at")
 	}
@@ -586,15 +605,15 @@ func (s Server) RenderPageForProfileRegistration(w http.ResponseWriter, r *http.
 	for _, d := range topDevelopers {
 		topDeveloperNames = append(topDeveloperNames, strings.Split(d.Name, " ")[0])
 	}
-	messagesSentLastMonth, err := devRepo.GetDeveloperMessagesSentLastMonth()
+	messagesSentLastMonth, err := repositories.GetDeveloperMessagesSentLastMonth(r.Context())
 	if err != nil {
 		s.Log(err, "GetDeveloperMessagesSentLastMonth")
 	}
-	devsRegisteredLastMonth, err := devRepo.GetDevelopersRegisteredLastMonth()
+	devsRegisteredLastMonth, err := repositories.GetDevelopersRegisteredLastMonth(r.Context())
 	if err != nil {
 		s.Log(err, "GetDevelopersRegisteredLastMonth")
 	}
-	devPageViewsLastMonth, err := devRepo.GetDeveloperProfilePageViewsLastMonth()
+	devPageViewsLastMonth, err := repositories.GetDeveloperProfilePageViewsLastMonth(r.Context())
 	if err != nil {
 		s.Log(err, "GetDeveloperProfilePageViewsLastMonth")
 	}
@@ -612,7 +631,14 @@ func (s Server) RenderPageForProfileRegistration(w http.ResponseWriter, r *http.
 	})
 }
 
-func (s Server) RenderPageForDevelopers(w http.ResponseWriter, r *http.Request, devRepo *developer.Repository, location, tag, page, htmlView string) {
+type DeveloperView struct {
+	Developer          *database.DeveloperProfile
+	CreatedAtHumanized string
+	UpdatedAtHumanized string
+	SkillsArray        []string
+}
+
+func (s Server) RenderPageForDevelopers(w http.ResponseWriter, r *http.Request, location, tag, page, htmlView string) {
 	showPage := true
 	if page == "" {
 		page = "1"
@@ -636,15 +662,15 @@ func (s Server) RenderPageForDevelopers(w http.ResponseWriter, r *http.Request, 
 	if strings.EqualFold(location, "remote") {
 		locSearch = ""
 	}
-	developersForPage, totalDevelopersCount, err := devRepo.DevelopersByLocationAndTag(locSearch, tag, pageID, s.cfg.DevelopersPerPage)
+	developers, totalDevelopersCount, err := repositories.DevelopersByLocationAndTag(r.Context(), locSearch, tag, pageID, s.cfg.DevelopersPerPage)
 	if err != nil {
 		s.Log(err, "unable to get developers by location and tag")
 		s.JSON(w, http.StatusInternalServerError, "Oops! An internal error has occurred")
 		return
 	}
-	if len(developersForPage) == 0 {
+	if len(developers) == 0 {
 		complementaryRemote = true
-		developersForPage, totalDevelopersCount, err = devRepo.DevelopersByLocationAndTag("", "", pageID, s.cfg.DevelopersPerPage)
+		developers, totalDevelopersCount, err = repositories.DevelopersByLocationAndTag(r.Context(), "", "", pageID, s.cfg.DevelopersPerPage)
 	}
 	pages := []int{}
 	pageLinksPerPage := 8
@@ -656,32 +682,42 @@ func (s Server) RenderPageForDevelopers(w http.ResponseWriter, r *http.Request, 
 	for i, j := firstPage, 1; i <= totalDevelopersCount/s.cfg.DevelopersPerPage+1 && j <= pageLinksPerPage; i, j = i+1, j+1 {
 		pages = append(pages, i)
 	}
-	for i, j := range developersForPage {
-		developersForPage[i].CreatedAtHumanized = humanize.Time(j.CreatedAt.UTC())
-		developersForPage[i].UpdatedAtHumanized = j.UpdatedAt.UTC().Format("January 2006")
-		developersForPage[i].SkillsArray = strings.Split(j.Skills, ",")
+	developersForPage := make([]*DeveloperView, len(developers))
+	for i, j := range developers {
+		developersForPage[i] = &DeveloperView{
+			Developer:          j,
+			CreatedAtHumanized: humanize.Time(j.CreatedAt.UTC()),
+			UpdatedAtHumanized: j.UpdatedAt.Time.UTC().Format("January 2006"),
+			SkillsArray:        strings.Split(j.Skills, ","),
+		}
 	}
-	ua := r.Header.Get("user-agent")
 	ref := r.Header.Get("referer")
 	ips := strings.Split(r.Header.Get("x-forwarded-for"), ", ")
 	if len(ips) > 0 && strings.Contains(ref, s.GetConfig().SiteHost) {
 		hashedIP := sha256.Sum256([]byte(ips[0]))
 		go func() {
-			if err := database.TrackSearchEvent(s.Conn, ua, hex.EncodeToString(hashedIP[:]), location, "", len(developersForPage), developer.SearchTypeDeveloper); err != nil {
+			searchEvent := &database.SearchEvent{
+				SessionID: hex.EncodeToString(hashedIP[:]),
+				Location:  null.StringFrom(location),
+				Tag:       null.StringFrom(tag),
+				Results:   len(developersForPage),
+				Type:      null.StringFrom(repositories.SearchTypeDeveloper),
+			}
+			if err := searchEvent.InsertG(r.Context(), boil.Infer()); err != nil {
 				fmt.Printf("err while saving event: %s\n", err)
 			}
 		}()
 	}
-	loc, err := database.GetLocation(s.Conn, location)
+	loc, err := database.SeoLocations(database.SeoLocationWhere.Name.EQ(location)).OneG(r.Context())
 	if err != nil {
 		loc.Name = "Remote"
 		loc.Currency = "$"
 	}
-	topDevelopers, err := devRepo.GetTopDevelopers(10)
+	topDevelopers, err := repositories.GetTopDevelopers(r.Context(), 10)
 	if err != nil {
 		s.Log(err, "unable to get top developer names")
 	}
-	topDeveloperSkills, err := devRepo.GetTopDeveloperSkills(7)
+	topDeveloperSkills, err := repositories.GetTopDeveloperSkills(r.Context(), 7)
 	if err != nil {
 		s.Log(err, "unable to get top developer skills")
 	}
@@ -690,23 +726,25 @@ func (s Server) RenderPageForDevelopers(w http.ResponseWriter, r *http.Request, 
 		topDeveloperNames = append(topDeveloperNames, strings.Split(d.Name, " ")[0])
 	}
 
-	emailSubscribersCount, err := database.CountEmailSubscribers(s.Conn)
+	emailSubscribersCount, err := database.EmailSubscribers(
+		database.EmailSubscriberWhere.ConfirmedAt.IsNotNull(),
+	).CountG(r.Context())
 	if err != nil {
 		s.Log(err, "database.CountEmailSubscribers")
 	}
-	lastDevUpdatedAt, err := devRepo.GetLastDevUpdatedAt()
+	lastDevUpdatedAt, err := repositories.GetLastDevUpdatedAt(r.Context())
 	if err != nil {
 		s.Log(err, "unable to retrieve last developer joined at")
 	}
-	messagesSentLastMonth, err := devRepo.GetDeveloperMessagesSentLastMonth()
+	messagesSentLastMonth, err := repositories.GetDeveloperMessagesSentLastMonth(r.Context())
 	if err != nil {
 		s.Log(err, "GetDeveloperMessagesSentLastMonth")
 	}
-	devsRegisteredLastMonth, err := devRepo.GetDevelopersRegisteredLastMonth()
+	devsRegisteredLastMonth, err := repositories.GetDevelopersRegisteredLastMonth(r.Context())
 	if err != nil {
 		s.Log(err, "GetDevelopersRegisteredLastMonth")
 	}
-	devPageViewsLastMonth, err := devRepo.GetDeveloperProfilePageViewsLastMonth()
+	devPageViewsLastMonth, err := repositories.GetDeveloperProfilePageViewsLastMonth(r.Context())
 	if err != nil {
 		s.Log(err, "GetDeveloperProfilePageViewsLastMonth")
 	}
@@ -743,7 +781,7 @@ func (s Server) RenderPageForDevelopers(w http.ResponseWriter, r *http.Request, 
 
 }
 
-func (s Server) RenderPageForCompanies(w http.ResponseWriter, r *http.Request, companyRepo *company.Repository, jobRepo *job.Repository, devRepo *developer.Repository, location, page, htmlView string) {
+func (s Server) RenderPageForCompanies(w http.ResponseWriter, r *http.Request, location, page, htmlView string) {
 	showPage := true
 	if page == "" {
 		page = "1"
@@ -761,7 +799,7 @@ func (s Server) RenderPageForCompanies(w http.ResponseWriter, r *http.Request, c
 		showPage = false
 	}
 	var complementaryRemote bool
-	companiesForPage, totalCompaniesCount, err := companyRepo.CompaniesByQuery(location, pageID, s.cfg.CompaniesPerPage)
+	companiesForPage, totalCompaniesCount, err := repositories.CompaniesByQuery(r.Context(), location, pageID, s.cfg.CompaniesPerPage)
 	if err != nil {
 		s.Log(err, "unable to get companies by query")
 		s.JSON(w, http.StatusInternalServerError, "Oops! An internal error has occurred")
@@ -769,41 +807,49 @@ func (s Server) RenderPageForCompanies(w http.ResponseWriter, r *http.Request, c
 	}
 	if len(companiesForPage) == 0 {
 		complementaryRemote = true
-		companiesForPage, totalCompaniesCount, err = companyRepo.CompaniesByQuery("Remote", pageID, s.cfg.CompaniesPerPage)
+		companiesForPage, totalCompaniesCount, err = repositories.CompaniesByQuery(r.Context(), "Remote", pageID, s.cfg.CompaniesPerPage)
 	}
-	loc, err := database.GetLocation(s.Conn, location)
+	loc, err := database.SeoLocations(database.SeoLocationWhere.Name.EQ(location)).OneG(r.Context())
 	if err != nil {
+		loc = &database.SeoLocation{}
 		loc.Name = "Remote"
 		loc.Currency = "$"
 	}
+	pageID64 := pageID
 	pages := []int{}
 	pageLinksPerPage := 8
-	pageLinkShift := ((pageLinksPerPage / 2) + 1)
+	pageLinkShift := (pageLinksPerPage / 2) + 1
 	firstPage := 1
-	if pageID-pageLinkShift > 0 {
-		firstPage = pageID - pageLinkShift
+	if pageID64-pageLinkShift > 0 {
+		firstPage = pageID64 - pageLinkShift
 	}
 	for i, j := firstPage, 1; i <= totalCompaniesCount/s.cfg.CompaniesPerPage+1 && j <= pageLinksPerPage; i, j = i+1, j+1 {
 		pages = append(pages, i)
 	}
 
-	ua := r.Header.Get("user-agent")
 	ref := r.Header.Get("referer")
 	ips := strings.Split(r.Header.Get("x-forwarded-for"), ", ")
 	if len(ips) > 0 && strings.Contains(ref, s.GetConfig().SiteHost) {
 		hashedIP := sha256.Sum256([]byte(ips[0]))
 		go func() {
-			if err := database.TrackSearchEvent(s.Conn, ua, hex.EncodeToString(hashedIP[:]), location, "", len(companiesForPage), company.SearchTypeCompany); err != nil {
+			trackEvent := &database.SearchEvent{
+				SessionID: hex.EncodeToString(hashedIP[:]),
+				Location:  null.StringFrom(location),
+				Tag:       null.StringFrom(""),
+				Results:   len(companiesForPage),
+				Type:      null.StringFrom(company.SearchTypeCompany),
+			}
+			if err := trackEvent.InsertG(r.Context(), boil.Infer()); err != nil {
 				fmt.Printf("err while saving event: %s\n", err)
 			}
 		}()
 	}
-	jobPosts, err := jobRepo.TopNJobsByLocation(loc.Name, 3)
+	jobPosts, err := repositories.TopNJobsByLocation(r.Context(), loc.Name, 3)
 	if err != nil {
 		s.Log(err, "database.TopNJobsByLocation")
 	}
 	if len(jobPosts) == 0 {
-		jobPosts, err = jobRepo.TopNJobsByLocation("Remote", 3)
+		jobPosts, err = repositories.TopNJobsByLocation(r.Context(), "Remote", 3)
 		if err != nil {
 			s.Log(err, "database.TopNJobsByLocation")
 		}
@@ -811,23 +857,25 @@ func (s Server) RenderPageForCompanies(w http.ResponseWriter, r *http.Request, c
 
 	var lastJobPostedAt, lastJobPostedAtHumanized string
 	if len(jobPosts) > 0 {
-		lastJobPostedAt = time.Unix(jobPosts[0].CreatedAt, 0).Format(time.RFC3339)
-		lastJobPostedAtHumanized = humanize.Time(time.Unix(jobPosts[0].CreatedAt, 0))
+		lastJobPostedAt = jobPosts[0].CreatedAt.Format(time.RFC3339)
+		lastJobPostedAtHumanized = humanize.Time(jobPosts[0].CreatedAt)
 	}
 
-	emailSubscribersCount, err := database.CountEmailSubscribers(s.Conn)
+	emailSubscribersCount, err := database.EmailSubscribers(
+		database.EmailSubscriberWhere.ConfirmedAt.IsNotNull(),
+	).CountG(r.Context())
 	if err != nil {
 		s.Log(err, "database.CountEmailSubscribers")
 	}
-	topDevelopers, err := devRepo.GetTopDevelopers(10)
+	topDevelopers, err := repositories.GetTopDevelopers(r.Context(), 10)
 	if err != nil {
 		s.Log(err, "unable to get top developers")
 	}
-	topDeveloperSkills, err := devRepo.GetTopDeveloperSkills(7)
+	topDeveloperSkills, err := repositories.GetTopDeveloperSkills(r.Context(), 7)
 	if err != nil {
 		s.Log(err, "unable to get top developer skills")
 	}
-	lastDevUpdatedAt, err := devRepo.GetLastDevUpdatedAt()
+	lastDevUpdatedAt, err := repositories.GetLastDevUpdatedAt(r.Context())
 	if err != nil {
 		s.Log(err, "unable to retrieve last developer joined at")
 	}
@@ -835,15 +883,15 @@ func (s Server) RenderPageForCompanies(w http.ResponseWriter, r *http.Request, c
 	for _, d := range topDevelopers {
 		topDeveloperNames = append(topDeveloperNames, strings.Split(d.Name, " ")[0])
 	}
-	messagesSentLastMonth, err := devRepo.GetDeveloperMessagesSentLastMonth()
+	messagesSentLastMonth, err := repositories.GetDeveloperMessagesSentLastMonth(r.Context())
 	if err != nil {
 		s.Log(err, "GetDeveloperMessagesSentLastMonth")
 	}
-	devsRegisteredLastMonth, err := devRepo.GetDevelopersRegisteredLastMonth()
+	devsRegisteredLastMonth, err := repositories.GetDevelopersRegisteredLastMonth(r.Context())
 	if err != nil {
 		s.Log(err, "GetDevelopersRegisteredLastMonth")
 	}
-	devPageViewsLastMonth, err := devRepo.GetDeveloperProfilePageViewsLastMonth()
+	devPageViewsLastMonth, err := repositories.GetDeveloperProfilePageViewsLastMonth(r.Context())
 	if err != nil {
 		s.Log(err, "GetDeveloperProfilePageViewsLastMonth")
 	}
@@ -880,7 +928,7 @@ func (s Server) RenderPageForCompanies(w http.ResponseWriter, r *http.Request, c
 	})
 }
 
-func (s Server) RenderPageForLocationAndTagAdmin(r *http.Request, w http.ResponseWriter, jobRepo *job.Repository, location, tag, page, salary, currency, htmlView string) {
+func (s Server) RenderPageForLocationAndTagAdmin(r *http.Request, w http.ResponseWriter, location, tag, page, salary, currency, htmlView string) {
 	showPage := true
 	if page == "" {
 		page = "1"
@@ -904,20 +952,20 @@ func (s Server) RenderPageForLocationAndTagAdmin(r *http.Request, w http.Respons
 		pageID = 1
 		showPage = false
 	}
-	var pinnedJobs []*job.JobPost
-	pinnedJobs, err = jobRepo.GetPinnedJobs()
+	var pinnedJobs []*database.Job
+	pinnedJobs, err = repositories.GetPinnedJobs(r.Context())
 	if err != nil {
 		s.Log(err, "unable to get pinned jobs")
 	}
-	var pendingJobs []*job.JobPost
-	pendingJobs, err = jobRepo.GetPendingJobs()
+	var pendingJobs []*database.Job
+	pendingJobs, err = repositories.GetPendingJobs(r.Context())
 	if err != nil {
 		s.Log(err, "unable to get pending jobs")
 	}
 	for i, j := range pendingJobs {
 		pendingJobs[i].SalaryRange = j.SalaryRange
 	}
-	jobsForPage, totalJobCount, err := jobRepo.JobsByQuery(location, tag, pageID, salaryInt, currency, s.cfg.JobsPerPage, false)
+	jobsForPage, totalJobCount, err := repositories.JobsByQuery(r.Context(), location, tag, pageID, salary, currency, s.cfg.JobsPerPage, false)
 	if err != nil {
 		s.Log(err, "unable to get jobs by query")
 		s.JSON(w, http.StatusInternalServerError, "Oops! An internal error has occurred")
@@ -926,9 +974,9 @@ func (s Server) RenderPageForLocationAndTagAdmin(r *http.Request, w http.Respons
 	var complementaryRemote bool
 	if len(jobsForPage) == 0 {
 		complementaryRemote = true
-		jobsForPage, totalJobCount, err = jobRepo.JobsByQuery("Remote", tag, pageID, salaryInt, currency, s.cfg.JobsPerPage, false)
+		jobsForPage, totalJobCount, err = repositories.JobsByQuery(r.Context(), "Remote", tag, pageID, salary, currency, s.cfg.JobsPerPage, false)
 		if len(jobsForPage) == 0 {
-			jobsForPage, totalJobCount, err = jobRepo.JobsByQuery("Remote", "", pageID, salaryInt, currency, s.cfg.JobsPerPage, false)
+			jobsForPage, totalJobCount, err = repositories.JobsByQuery(r.Context(), "Remote", "", pageID, salary, currency, s.cfg.JobsPerPage, false)
 		}
 	}
 	if err != nil {
@@ -947,12 +995,10 @@ func (s Server) RenderPageForLocationAndTagAdmin(r *http.Request, w http.Respons
 		pages = append(pages, i)
 	}
 	for i, j := range jobsForPage {
-		jobsForPage[i].JobDescription = string(s.tmpl.MarkdownToHTML(j.JobDescription))
-		jobsForPage[i].SalaryRange = j.SalaryRange
+		jobsForPage[i].Description = string(s.tmpl.MarkdownToHTML(j.Description))
 	}
 	for i, j := range pinnedJobs {
-		pinnedJobs[i].JobDescription = string(s.tmpl.MarkdownToHTML(j.JobDescription))
-		pinnedJobs[i].SalaryRange = j.SalaryRange
+		pinnedJobs[i].Description = string(s.tmpl.MarkdownToHTML(j.Description))
 	}
 
 	s.Render(r, w, http.StatusOK, htmlView, map[string]interface{}{
@@ -972,41 +1018,58 @@ func (s Server) RenderPageForLocationAndTagAdmin(r *http.Request, w http.Respons
 	})
 }
 
-func (s Server) RenderPostAJobForLocation(w http.ResponseWriter, r *http.Request, companyRepo *company.Repository, jobRepo *job.Repository, location string) {
+func (s Server) RenderPostAJobForLocation(w http.ResponseWriter, r *http.Request, location string) {
 	var defaultJobPageviewsLast30Days = 15000
-	var defaultJobApplicantsLast30Days = 1000
-	var defaultPageviewsLast30Days = 4000
-	pageviewsLast30Days, err := database.GetWebsitePageViewsLast30Days(s.Conn)
+	var defaultJobApplicantsLast30Days = int64(1000)
+	var defaultPageviewsLast30Days = int64(4000)
+
+	pageviewsLast30Days := 0
+	jobPageviewsLast30Days := int64(0)
+	jobApplicantsLast30Days := int64(0)
+	err := database.CloudflareBrowserStats(
+		qm.Select("SUM("+database.CloudflareBrowserStatColumns.PageViews+") AS pageviews"),
+		database.CloudflareBrowserStatWhere.Date.GT(time.Now().AddDate(0, 0, -30)),
+		qm.And(database.CloudflareBrowserStatColumns.UaBrowserFamily+" NOT ILIKE ?", "%bot%"),
+	).BindG(r.Context(), &pageviewsLast30Days)
 	if err != nil {
 		s.Log(err, "could not retrieve pageviews for last 30 days")
 	}
 	if pageviewsLast30Days < defaultJobPageviewsLast30Days {
 		pageviewsLast30Days = defaultJobPageviewsLast30Days
 	}
-	jobPageviewsLast30Days, err := database.GetJobPageViewsLast30Days(s.Conn)
+	jobPageviewsLast30Days, err = database.JobEvents(
+		database.JobEventWhere.EventType.EQ("page_view"),
+		database.JobEventWhere.CreatedAt.GT(time.Now().AddDate(0, 0, -30)),
+	).CountG(r.Context())
+	if err != nil {
+		s.Log(err, "could not retrieve pageviews for last 30 days")
+	}
 	if err != nil {
 		s.Log(err, "could not retrieve job pageviews for last 30 days")
 	}
 	if jobPageviewsLast30Days < defaultPageviewsLast30Days {
 		jobPageviewsLast30Days = defaultPageviewsLast30Days
 	}
-	jobApplicantsLast30Days, err := database.GetJobClickoutsLast30Days(s.Conn)
+	jobApplicantsLast30Days, err = database.JobEvents(
+		database.JobEventWhere.EventType.EQ("clickout"),
+		database.JobEventWhere.CreatedAt.GT(time.Now().AddDate(0, 0, -30)),
+	).CountG(r.Context())
 	if err != nil {
 		s.Log(err, "could not retrieve job clickouts for last 30 days")
 	}
 	if jobApplicantsLast30Days < defaultJobApplicantsLast30Days {
 		jobApplicantsLast30Days = defaultJobApplicantsLast30Days
 	}
-	featuredCompanies, err := companyRepo.FeaturedCompaniesPostAJob()
+	featuredCompanies, err := repositories.FeaturedCompaniesPostAJob(r.Context())
 	if err != nil {
 		s.Log(err, "could not retrieve featured companies for post a job page")
 	}
-	lastJobPosted, err := jobRepo.LastJobPosted()
+	lastJobPosted, err := repositories.LastJobPosted(r.Context())
 	if err != nil {
 		s.Log(err, "could not retrieve last job posted at")
 		lastJobPosted = time.Now().AddDate(0, 0, -1)
 	}
-	newJobsLastWeek, newJobsLastMonth, err := jobRepo.NewJobsLastWeekOrMonth()
+	newJobsLastWeek, newJobsLastMonth, err := repositories.NewJobsLastWeekOrMonth(r.Context())
 	if err != nil {
 		s.Log(err, "unable to retrieve new jobs last week last month")
 		newJobsLastWeek = 1

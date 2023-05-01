@@ -1,10 +1,9 @@
-module github.com/golang-cafe/job-board
+module github.com/underdogio/job-board
 
 go 1.18
 
 require (
 	github.com/ChimeraCoder/anaconda v2.0.0+incompatible
-	github.com/aclements/go-moremath v0.0.0-20210112150236-f10218a38794
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 	github.com/allegro/bigcache/v3 v3.1.0
 	github.com/bot-api/telegram v0.0.0-20170115211335-b7abf87c449e

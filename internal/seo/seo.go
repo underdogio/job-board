@@ -7,10 +7,9 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/golang-cafe/job-board/internal/blog"
-	"github.com/golang-cafe/job-board/internal/company"
-	"github.com/golang-cafe/job-board/internal/database"
-	"github.com/golang-cafe/job-board/internal/developer"
+	"github.com/underdogio/job-board/internal/database"
+	"github.com/underdogio/job-board/internal/repositories"
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
 func StaticPages(siteJobCategory string) []string {
@@ -29,9 +28,9 @@ type BlogPost struct {
 	Title, Path string
 }
 
-func BlogPages(blogRepo *blog.Repository) ([]BlogPost, error) {
+func BlogPages(ctx context.Context) ([]BlogPost, error) {
 	posts := make([]BlogPost, 0, 100)
-	blogs, err := blogRepo.GetAllPublished()
+	blogs, err := repositories.GetAllPublishedBlogPost(ctx)
 	if err != nil {
 		return posts, err
 	}
@@ -162,15 +161,19 @@ func GenerateSearchSeoLandingPages(ctx context.Context, conn *sql.Tx, siteJobCat
 	return seoLandingPages, nil
 }
 
-func GenerateDevelopersSkillLandingPages(repo *developer.Repository, siteJobCategory string) ([]string, error) {
+func GenerateDevelopersSkillLandingPages(ctx context.Context, siteJobCategory string) ([]string, error) {
 	siteJobCategory = strings.Title(siteJobCategory)
 	var landingPages []string
-	devSkills, err := repo.GetDeveloperSkills()
+	var devSkills []string
+	err := database.DeveloperProfiles(
+		qm.Select("distinct trim(both from unnest(regexp_split_to_array("+database.DeveloperProfileColumns.Skills+", ','))) as skill"),
+		qm.Where(database.DeveloperProfileColumns.UpdatedAt+" != "+database.DeveloperProfileColumns.CreatedAt),
+	).BindG(ctx, &landingPages)
 	if err != nil {
 		return landingPages, err
 	}
 	for _, skill := range devSkills {
-		devSkills = append(devSkills, fmt.Sprintf("%s-%s-Developers", siteJobCategory, url.PathEscape(skill)))
+		landingPages = append(landingPages, fmt.Sprintf("%s-%s-Developers", siteJobCategory, url.PathEscape(skill)))
 	}
 
 	return landingPages, nil
@@ -190,9 +193,9 @@ func GenerateDevelopersLocationPages(ctx context.Context, siteJobCategory string
 	return landingPages, nil
 }
 
-func GenerateDevelopersProfileLandingPages(repo *developer.Repository) ([]string, error) {
+func GenerateDevelopersProfileLandingPages(ctx context.Context) ([]string, error) {
 	var landingPages []string
-	profiles, err := repo.GetDeveloperSlugs()
+	profiles, err := repositories.GetDeveloperSlugs(ctx)
 	if err != nil {
 		return landingPages, err
 	}
@@ -203,9 +206,9 @@ func GenerateDevelopersProfileLandingPages(repo *developer.Repository) ([]string
 	return landingPages, nil
 }
 
-func GenerateCompanyProfileLandingPages(companyRepo *company.Repository) ([]string, error) {
+func GenerateCompanyProfileLandingPages(ctx context.Context) ([]string, error) {
 	var landingPages []string
-	companies, err := companyRepo.GetCompanySlugs()
+	companies, err := repositories.GetCompanySlugs(ctx)
 	if err != nil {
 		return landingPages, err
 	}

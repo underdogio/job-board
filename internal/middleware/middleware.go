@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang-cafe/job-board/internal/gzip"
+	"github.com/underdogio/job-board/internal/gzip"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/sessions"

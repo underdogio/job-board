@@ -204,6 +204,7 @@ CREATE TABLE public.developer_profile_message (
     email character varying(255) NOT NULL,
     content text NOT NULL,
     profile_id character(27) NOT NULL,
+    sender_id character(27) NOT NULL,
     created_at timestamp without time zone NOT NULL,
     sent_at timestamp without time zone
 );
@@ -545,6 +546,21 @@ ALTER TABLE ONLY public.developer_profile_event
 
 ALTER TABLE ONLY public.developer_profile
     ADD CONSTRAINT developer_profile_image_id_fk FOREIGN KEY (image_id) REFERENCES public.image(id);
+
+
+--
+-- Name: developer_profile_message developer_profile_message_profile_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.developer_profile_message
+    ADD CONSTRAINT developer_profile_message_profile_id_fk FOREIGN KEY (profile_id) REFERENCES public.developer_profile(id);
+
+--
+-- Name: developer_profile_message developer_profile_message_sender_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.developer_profile_message
+    ADD CONSTRAINT developer_profile_message_sender_id_fk FOREIGN KEY (sender_id) REFERENCES public.users(id);
 
 
 --

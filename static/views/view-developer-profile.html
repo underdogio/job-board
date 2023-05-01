@@ -304,9 +304,9 @@ background-color: #FF6600
     <small>{{ if and (or .IsUserRecruiter .IsUserAdmin ) (ne .DeveloperProfile.HourlyRate 0) }}Hourly Rate: <b>{{ .DeveloperProfile.HourlyRate }} USD/hour</b>{{ end }}</small><br />
     <small>Experience Level: <b>{{ stringTitle .DeveloperProfile.RoleLevel }}</b></small><br />
     <small>Work Preference: <b>{{ .DeveloperProfile.RoleTypeAsString }}</b></small><br />
-		<small>Last Updated <b>{{ .DeveloperProfile.UpdatedAtHumanized }}</b></small><br />
+		<small>Last Updated <b>{{ .UpdatedAtHumanized }}</b></small><br />
 		<p id="skills-{{ .DeveloperProfile.ID }}">
-		  {{ range $x, $y := .DeveloperProfile.SkillsArray }}
+		  {{ range $x, $y := .Skills }}
 		  	<span style="display: inline-block;margin-top:10px;background: #dbdbdb;font-size:medium;padding: 4px 10px;border-radius:5px;">{{ $y }}</span>
 		  {{ end }}
 	    </p><br />

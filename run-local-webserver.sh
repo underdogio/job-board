@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-
-source ./.env.dev
+set -a; source .env; set +a
 
 go build -o bin/server cmd/server/main.go
 

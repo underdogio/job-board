@@ -142,7 +142,7 @@ func LoadConfig() (Config, error) {
 	}
 	twitterJobsToPost, err := strconv.Atoi(twitterJobsToPostStr)
 	if err != nil {
-		return Config{}, fmt.Errorf("could not convert ascii to int: %v", err)
+		return Config{}, errors.Wrap(err, "unable to convert twitter jobs to post to int")
 	}
 	newsletterJobsToSendStr := os.Getenv("NEWSLETTER_JOBS_TO_SEND")
 	if newsletterJobsToSendStr == "" {
@@ -150,7 +150,7 @@ func LoadConfig() (Config, error) {
 	}
 	newsletterJobsToSend, err := strconv.Atoi(newsletterJobsToSendStr)
 	if err != nil {
-		return Config{}, fmt.Errorf("could not convert ascii to int: %v", err)
+		return Config{}, errors.Wrap(err, "unable to convert newsletter jobs to send to int")
 	}
 	cloudflareAPIToken := os.Getenv("CLOUDFLARE_API_TOKEN")
 	if cloudflareAPIToken == "" {

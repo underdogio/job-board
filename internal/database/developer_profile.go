@@ -159,17 +159,20 @@ var DeveloperProfileWhere = struct {
 
 // DeveloperProfileRels is where relationship names are stored.
 var DeveloperProfileRels = struct {
-	Image                  string
-	DeveloperProfileEvents string
+	Image                           string
+	DeveloperProfileEvents          string
+	ProfileDeveloperProfileMessages string
 }{
-	Image:                  "Image",
-	DeveloperProfileEvents: "DeveloperProfileEvents",
+	Image:                           "Image",
+	DeveloperProfileEvents:          "DeveloperProfileEvents",
+	ProfileDeveloperProfileMessages: "ProfileDeveloperProfileMessages",
 }
 
 // developerProfileR is where relationships are stored.
 type developerProfileR struct {
-	Image                  *Image                     `boil:"Image" json:"Image" toml:"Image" yaml:"Image"`
-	DeveloperProfileEvents DeveloperProfileEventSlice `boil:"DeveloperProfileEvents" json:"DeveloperProfileEvents" toml:"DeveloperProfileEvents" yaml:"DeveloperProfileEvents"`
+	Image                           *Image                       `boil:"Image" json:"Image" toml:"Image" yaml:"Image"`
+	DeveloperProfileEvents          DeveloperProfileEventSlice   `boil:"DeveloperProfileEvents" json:"DeveloperProfileEvents" toml:"DeveloperProfileEvents" yaml:"DeveloperProfileEvents"`
+	ProfileDeveloperProfileMessages DeveloperProfileMessageSlice `boil:"ProfileDeveloperProfileMessages" json:"ProfileDeveloperProfileMessages" toml:"ProfileDeveloperProfileMessages" yaml:"ProfileDeveloperProfileMessages"`
 }
 
 // NewStruct creates a new relationship struct
@@ -189,6 +192,13 @@ func (r *developerProfileR) GetDeveloperProfileEvents() DeveloperProfileEventSli
 		return nil
 	}
 	return r.DeveloperProfileEvents
+}
+
+func (r *developerProfileR) GetProfileDeveloperProfileMessages() DeveloperProfileMessageSlice {
+	if r == nil {
+		return nil
+	}
+	return r.ProfileDeveloperProfileMessages
 }
 
 // developerProfileL is where Load methods for each relationship are stored.
@@ -525,6 +535,20 @@ func (o *DeveloperProfile) DeveloperProfileEvents(mods ...qm.QueryMod) developer
 	return DeveloperProfileEvents(queryMods...)
 }
 
+// ProfileDeveloperProfileMessages retrieves all the developer_profile_message's DeveloperProfileMessages with an executor via profile_id column.
+func (o *DeveloperProfile) ProfileDeveloperProfileMessages(mods ...qm.QueryMod) developerProfileMessageQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"developer_profile_message\".\"profile_id\"=?", o.ID),
+	)
+
+	return DeveloperProfileMessages(queryMods...)
+}
+
 // LoadImage allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
 func (developerProfileL) LoadImage(ctx context.Context, e boil.ContextExecutor, singular bool, maybeDeveloperProfile interface{}, mods queries.Applicator) error {
@@ -759,6 +783,120 @@ func (developerProfileL) LoadDeveloperProfileEvents(ctx context.Context, e boil.
 	return nil
 }
 
+// LoadProfileDeveloperProfileMessages allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (developerProfileL) LoadProfileDeveloperProfileMessages(ctx context.Context, e boil.ContextExecutor, singular bool, maybeDeveloperProfile interface{}, mods queries.Applicator) error {
+	var slice []*DeveloperProfile
+	var object *DeveloperProfile
+
+	if singular {
+		var ok bool
+		object, ok = maybeDeveloperProfile.(*DeveloperProfile)
+		if !ok {
+			object = new(DeveloperProfile)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeDeveloperProfile)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeDeveloperProfile))
+			}
+		}
+	} else {
+		s, ok := maybeDeveloperProfile.(*[]*DeveloperProfile)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeDeveloperProfile)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeDeveloperProfile))
+			}
+		}
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &developerProfileR{}
+		}
+		args = append(args, object.ID)
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &developerProfileR{}
+			}
+
+			for _, a := range args {
+				if a == obj.ID {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.ID)
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`developer_profile_message`),
+		qm.WhereIn(`developer_profile_message.profile_id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load developer_profile_message")
+	}
+
+	var resultSlice []*DeveloperProfileMessage
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice developer_profile_message")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on developer_profile_message")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for developer_profile_message")
+	}
+
+	if len(developerProfileMessageAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.ProfileDeveloperProfileMessages = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &developerProfileMessageR{}
+			}
+			foreign.R.Profile = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.ProfileID {
+				local.R.ProfileDeveloperProfileMessages = append(local.R.ProfileDeveloperProfileMessages, foreign)
+				if foreign.R == nil {
+					foreign.R = &developerProfileMessageR{}
+				}
+				foreign.R.Profile = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
 // SetImageG of the developerProfile to the related item.
 // Sets o.R.Image to related.
 // Adds o to related.R.DeveloperProfiles.
@@ -871,6 +1009,68 @@ func (o *DeveloperProfile) AddDeveloperProfileEvents(ctx context.Context, exec b
 			}
 		} else {
 			rel.R.DeveloperProfile = o
+		}
+	}
+	return nil
+}
+
+// AddProfileDeveloperProfileMessagesG adds the given related objects to the existing relationships
+// of the developer_profile, optionally inserting them as new records.
+// Appends related to o.R.ProfileDeveloperProfileMessages.
+// Sets related.R.Profile appropriately.
+// Uses the global database handle.
+func (o *DeveloperProfile) AddProfileDeveloperProfileMessagesG(ctx context.Context, insert bool, related ...*DeveloperProfileMessage) error {
+	return o.AddProfileDeveloperProfileMessages(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddProfileDeveloperProfileMessages adds the given related objects to the existing relationships
+// of the developer_profile, optionally inserting them as new records.
+// Appends related to o.R.ProfileDeveloperProfileMessages.
+// Sets related.R.Profile appropriately.
+func (o *DeveloperProfile) AddProfileDeveloperProfileMessages(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*DeveloperProfileMessage) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.ProfileID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"developer_profile_message\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"profile_id"}),
+				strmangle.WhereClause("\"", "\"", 2, developerProfileMessagePrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.ProfileID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &developerProfileR{
+			ProfileDeveloperProfileMessages: related,
+		}
+	} else {
+		o.R.ProfileDeveloperProfileMessages = append(o.R.ProfileDeveloperProfileMessages, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &developerProfileMessageR{
+				Profile: o,
+			}
+		} else {
+			rel.R.Profile = o
 		}
 	}
 	return nil
